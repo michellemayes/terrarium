@@ -1,0 +1,127 @@
+use notify::{Config, Event, EventKind, RecommendedWatcher, RecursiveMode, Watcher};
+use std::path::PathBuf;
+use std::sync::mpsc;
+use std::time::{Duration, Instant};
+use tauri::Emitter;
+
+pub fn watch_file(
+    app_handle: tauri::AppHandle,
+    path: PathBuf,
+) -> Result<RecommendedWatcher, String> {
+    let (tx, rx) = mpsc::channel();
+
+    let mut watcher = RecommendedWatcher::new(
+        move |res: Result<Event, notify::Error>| {
+            if let Ok(event) = res {
+                let _ = tx.send(event);
+            }
+        },
+        Config::default(),
+    )
+    .map_err(|e| format!("Failed to create watcher: {e}"))?;
+
+    watcher
+        .watch(&path, RecursiveMode::NonRecursive)
+        .map_err(|e| format!("Failed to watch file: {e}"))?;
+
+    let watched_path = path.clone();
+
+    std::thread::spawn(move || {
+        let mut last_rebuild = Instant::now();
+
+        for event in rx {
+            match event.kind {
+                EventKind::Modify(_) | EventKind::Create(_) => {
+                    if !should_rebuild(last_rebuild, 300) {
+                        continue;
+                    }
+                    last_rebuild = Instant::now();
+
+                    let app = app_handle.clone();
+                    let path = watched_path.clone();
+                    tauri::async_runtime::spawn(async move {
+                        match crate::bundler::bundle_tsx(&app, &path).await {
+                            Ok(bundle) => {
+                                let _ = app.emit("bundle-ready", bundle);
+                            }
+                            Err(err) => {
+                                let _ = app.emit("bundle-error", err);
+                            }
+                        }
+                    });
+                }
+                _ => {}
+            }
+        }
+    });
+
+    Ok(watcher)
+}
+
+/// Debounce helper — returns true if enough time has passed since the last event.
+pub fn should_rebuild(last_rebuild: Instant, debounce_ms: u64) -> bool {
+    last_rebuild.elapsed() >= Duration::from_millis(debounce_ms)
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    #[test]
+    fn debounce_allows_after_delay() {
+        let last = Instant::now() - Duration::from_millis(500);
+        assert!(should_rebuild(last, 300));
+    }
+
+    #[test]
+    fn debounce_blocks_within_window() {
+        let last = Instant::now();
+        assert!(!should_rebuild(last, 300));
+    }
+
+    #[test]
+    fn debounce_exact_boundary() {
+        let last = Instant::now() - Duration::from_millis(300);
+        assert!(should_rebuild(last, 300));
+    }
+
+    #[test]
+    fn watcher_fails_on_nonexistent_path() {
+        let (tx, _rx) = mpsc::channel();
+        let mut watcher = RecommendedWatcher::new(
+            move |res: Result<Event, notify::Error>| {
+                if let Ok(event) = res {
+                    let _ = tx.send(event);
+                }
+            },
+            Config::default(),
+        )
+        .unwrap();
+
+        let result = watcher.watch(
+            &PathBuf::from("/nonexistent/path/that/does/not/exist.tsx"),
+            RecursiveMode::NonRecursive,
+        );
+        assert!(result.is_err());
+    }
+
+    #[test]
+    fn watcher_succeeds_on_existing_file() {
+        let dir = tempfile::TempDir::new().unwrap();
+        let file = dir.path().join("test.tsx");
+        std::fs::write(&file, "export default function() {}").unwrap();
+
+        let (tx, _rx) = mpsc::channel();
+        let mut watcher = RecommendedWatcher::new(
+            move |res: Result<Event, notify::Error>| {
+                if let Ok(event) = res {
+                    let _ = tx.send(event);
+                }
+            },
+            Config::default(),
+        )
+        .unwrap();
+
+        let result = watcher.watch(&file, RecursiveMode::NonRecursive);
+        assert!(result.is_ok());
+    }
+}
