@@ -1,0 +1,1 @@
+{"default":{"identifier":"default","description":"Default capabilities for tsx-viewer","local":true,"windows":["*"],"permissions":["core:default","opener:default","cli:default","dialog:default","updater:default","process:default"]}}

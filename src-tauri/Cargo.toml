@@ -1,0 +1,33 @@
+[package]
+name = "tsx-viewer"
+version = "0.1.0"
+description = "A lightweight TSX file viewer for Claude Artifacts"
+authors = [""]
+edition = "2021"
+
+[lib]
+name = "tsx_viewer_lib"
+crate-type = ["staticlib", "cdylib", "rlib"]
+
+[build-dependencies]
+tauri-build = { version = "2", features = [] }
+
+[dependencies]
+tauri = { version = "2", features = ["macos-private-api", "test"] }
+tauri-plugin-opener = "2"
+tauri-plugin-cli = "2"
+tauri-plugin-dialog = "2"
+tauri-plugin-updater = "2"
+tauri-plugin-process = "2"
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+notify = { version = "7", features = ["macos_fsevent"] }
+tokio = { version = "1", features = ["rt-multi-thread", "macros", "process"] }
+log = "0.4"
+dirs = "6"
+tempfile = "3"
+
+[dev-dependencies]
+tauri = { version = "2", features = ["test"] }
+tempfile = "3"
+tokio-test = "0.4"

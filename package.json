@@ -1,0 +1,20 @@
+{
+  "name": "tsx-viewer",
+  "version": "0.1.0",
+  "private": true,
+  "description": "A lightweight TSX file viewer for Claude Artifacts",
+  "scripts": {
+    "tauri": "tauri",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "test:coverage": "vitest run --coverage"
+  },
+  "devDependencies": {
+    "@tauri-apps/cli": "^2",
+    "vitest": "^3.0.0",
+    "jsdom": "^25.0.0"
+  },
+  "dependencies": {
+    "@tauri-apps/api": "^2"
+  }
+}
