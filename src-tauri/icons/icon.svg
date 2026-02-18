@@ -1,0 +1,134 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024" width="1024" height="1024">
+  <defs>
+    <!-- Background gradient: dark purple -->
+    <linearGradient id="bgGrad" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#1a0533"/>
+      <stop offset="100%" stop-color="#2d1052"/>
+    </linearGradient>
+
+    <!-- Neon cyan glow filter -->
+    <filter id="glowCyan" x="-50%" y="-50%" width="200%" height="200%">
+      <feGaussianBlur in="SourceGraphic" stdDeviation="18" result="blur1"/>
+      <feGaussianBlur in="SourceGraphic" stdDeviation="8" result="blur2"/>
+      <feGaussianBlur in="SourceGraphic" stdDeviation="3" result="blur3"/>
+      <feMerge>
+        <feMergeNode in="blur1"/>
+        <feMergeNode in="blur2"/>
+        <feMergeNode in="blur3"/>
+        <feMergeNode in="SourceGraphic"/>
+      </feMerge>
+    </filter>
+
+    <!-- Magenta under-glow filter -->
+    <filter id="glowMagenta" x="-50%" y="-50%" width="200%" height="200%">
+      <feGaussianBlur in="SourceGraphic" stdDeviation="28" result="blur1"/>
+      <feGaussianBlur in="SourceGraphic" stdDeviation="14" result="blur2"/>
+      <feMerge>
+        <feMergeNode in="blur1"/>
+        <feMergeNode in="blur2"/>
+      </feMerge>
+    </filter>
+
+    <!-- Subtle inner shadow for depth -->
+    <filter id="innerGlow" x="-10%" y="-10%" width="120%" height="120%">
+      <feGaussianBlur in="SourceGraphic" stdDeviation="40" result="blur"/>
+      <feComposite in="blur" in2="SourceGraphic" operator="in"/>
+    </filter>
+  </defs>
+
+  <!-- Rounded-square background (rx/ry ~22% of 1024 = 225) -->
+  <rect x="0" y="0" width="1024" height="1024" rx="225" ry="225" fill="url(#bgGrad)"/>
+
+  <!-- Subtle radial highlight in center for depth -->
+  <ellipse cx="512" cy="480" rx="320" ry="280" fill="#3d1a6e" opacity="0.25" filter="url(#innerGlow)"/>
+
+  <!-- Magenta under-glow layer for </> brackets -->
+  <g filter="url(#glowMagenta)" opacity="0.6">
+    <!-- Left bracket < -->
+    <polyline
+      points="370,340 220,512 370,684"
+      fill="none"
+      stroke="#ff00ff"
+      stroke-width="48"
+      stroke-linecap="round"
+      stroke-linejoin="round"
+    />
+    <!-- Right bracket > -->
+    <polyline
+      points="654,340 804,512 654,684"
+      fill="none"
+      stroke="#ff00ff"
+      stroke-width="48"
+      stroke-linecap="round"
+      stroke-linejoin="round"
+    />
+    <!-- Forward slash / -->
+    <line
+      x1="580" y1="300"
+      x2="444" y2="724"
+      stroke="#ff00ff"
+      stroke-width="40"
+      stroke-linecap="round"
+    />
+  </g>
+
+  <!-- Cyan neon glow layer for </> brackets -->
+  <g filter="url(#glowCyan)">
+    <!-- Left bracket < -->
+    <polyline
+      points="370,340 220,512 370,684"
+      fill="none"
+      stroke="#00f5ff"
+      stroke-width="36"
+      stroke-linecap="round"
+      stroke-linejoin="round"
+    />
+    <!-- Right bracket > -->
+    <polyline
+      points="654,340 804,512 654,684"
+      fill="none"
+      stroke="#00f5ff"
+      stroke-width="36"
+      stroke-linecap="round"
+      stroke-linejoin="round"
+    />
+    <!-- Forward slash / -->
+    <line
+      x1="580" y1="300"
+      x2="444" y2="724"
+      stroke="#00f5ff"
+      stroke-width="30"
+      stroke-linecap="round"
+    />
+  </g>
+
+  <!-- Bright white core highlights for extra neon pop -->
+  <g opacity="0.5">
+    <!-- Left bracket < core -->
+    <polyline
+      points="370,340 220,512 370,684"
+      fill="none"
+      stroke="#ffffff"
+      stroke-width="12"
+      stroke-linecap="round"
+      stroke-linejoin="round"
+    />
+    <!-- Right bracket > core -->
+    <polyline
+      points="654,340 804,512 654,684"
+      fill="none"
+      stroke="#ffffff"
+      stroke-width="12"
+      stroke-linecap="round"
+      stroke-linejoin="round"
+    />
+    <!-- Forward slash / core -->
+    <line
+      x1="580" y1="300"
+      x2="444" y2="724"
+      stroke="#ffffff"
+      stroke-width="8"
+      stroke-linecap="round"
+    />
+  </g>
+</svg>
