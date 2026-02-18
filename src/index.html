@@ -1,11 +1,86 @@
 <!DOCTYPE html>
 <html lang="en">
-  <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>TSX Viewer</title>
-  </head>
-  <body>
-    <div id="root"></div>
-  </body>
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>TSX Viewer</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body { min-height: 100vh; font-family: -apple-system, system-ui, sans-serif; }
+    #root { min-height: 100vh; transition: opacity 0.2s; }
+    #loading {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      height: 100vh;
+      color: #888;
+      font-size: 15px;
+    }
+    #error-banner {
+      position: fixed;
+      bottom: 0;
+      left: 0;
+      right: 0;
+      background: #1a1a2e;
+      border-top: 2px solid #e74c3c;
+      color: #ff6b6b;
+      font-family: 'SF Mono', 'Menlo', 'Consolas', monospace;
+      font-size: 13px;
+      z-index: 9999;
+      transform: translateY(100%);
+      transition: transform 0.2s ease-out;
+    }
+    #error-banner.visible { transform: translateY(0); }
+    #error-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 8px 16px;
+      cursor: pointer;
+      user-select: none;
+    }
+    #error-title {
+      font-weight: 600;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    #error-title::before {
+      content: '\2715';
+      color: #e74c3c;
+      font-size: 14px;
+    }
+    #error-toggle {
+      background: none;
+      border: none;
+      color: #888;
+      cursor: pointer;
+      font-size: 16px;
+      padding: 0 4px;
+    }
+    #error-detail {
+      padding: 0 16px 12px;
+      white-space: pre-wrap;
+      word-break: break-word;
+      max-height: 200px;
+      overflow-y: auto;
+      color: #ccc;
+      line-height: 1.5;
+    }
+  </style>
+</head>
+<body>
+  <div id="root">
+    <div id="loading">Loading component...</div>
+  </div>
+  <div id="error-banner">
+    <div id="error-header" onclick="toggleError()">
+      <span id="error-title">Build Error</span>
+      <button id="error-toggle">&#9660;</button>
+    </div>
+    <pre id="error-detail"></pre>
+  </div>
+  <script type="module" src="renderer.js"></script>
+</body>
 </html>
