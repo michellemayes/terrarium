@@ -1,6 +1,5 @@
 #!/usr/bin/env node
 
-import * as esbuild from 'esbuild';
 import { execSync } from 'child_process';
 import * as fs from 'fs';
 import * as path from 'path';
@@ -47,11 +46,14 @@ export async function bundle(inputFile) {
     throw new Error(`File not found: ${resolvedInput}`);
   }
 
-  const basePackages = ['react', 'react-dom'];
+  const basePackages = ['react', 'react-dom', 'esbuild'];
   const missingBase = basePackages.filter(p => !isInstalled(p));
   if (missingBase.length > 0) {
     installPackages(missingBase);
   }
+
+  const esbuildPath = path.join(NODE_MODULES, 'esbuild', 'lib', 'main.js');
+  const esbuild = await import(esbuildPath);
 
   const missing = new Set();
 

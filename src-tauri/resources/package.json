@@ -1,8 +1,5 @@
 {
   "name": "tsx-viewer-bundler",
   "private": true,
-  "type": "module",
-  "dependencies": {
-    "esbuild": "^0.24.0"
-  }
+  "type": "module"
 }
