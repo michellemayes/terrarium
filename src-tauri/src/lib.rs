@@ -101,17 +101,13 @@ pub fn run() {
                     for arg in std::env::args().skip(1) {
                         if arg.ends_with(".tsx") {
                             let path = PathBuf::from(&arg);
-                            // Try as-is first (absolute or relative to CWD)
                             if let Ok(resolved) = std::fs::canonicalize(&path) {
                                 *app.state::<AppState>().current_file.lock().unwrap() = Some(resolved);
-                                found_file = true;
                                 break;
                             }
-                            // Try relative to parent dir (for tauri dev where CWD is src-tauri/)
                             let from_parent = PathBuf::from("..").join(&path);
                             if let Ok(resolved) = std::fs::canonicalize(&from_parent) {
                                 *app.state::<AppState>().current_file.lock().unwrap() = Some(resolved);
-                                found_file = true;
                                 break;
                             }
                         }
@@ -121,38 +117,24 @@ pub fn run() {
 
             let has_file = app.state::<AppState>().current_file.lock().unwrap().is_some();
 
-            eprintln!("[tsx-viewer] has_file: {}", has_file);
-
             if !has_file {
                 let handle = app_handle.clone();
                 tauri::async_runtime::spawn(async move {
                     use tauri_plugin_dialog::DialogExt;
-                    eprintln!("[tsx-viewer] Opening file dialog...");
                     let file = handle.dialog().file()
                         .add_filter("TSX Files", &["tsx"])
                         .blocking_pick_file();
                     if let Some(picked) = file {
                         let path = match picked.into_path() {
                             Ok(p) => p,
-                            Err(e) => {
-                                eprintln!("[tsx-viewer] Failed to get path from dialog: {:?}", e);
-                                return;
-                            }
+                            Err(_) => return,
                         };
-                        eprintln!("[tsx-viewer] Dialog picked: {:?}", path);
                         let state = handle.state::<AppState>();
                         *state.current_file.lock().unwrap() = Some(path.clone());
 
-                        eprintln!("[tsx-viewer] Bundling {:?}...", path);
                         match bundler::bundle_tsx(&handle, &path).await {
-                            Ok(bundle) => {
-                                eprintln!("[tsx-viewer] Bundle success ({} bytes)", bundle.len());
-                                let _ = handle.emit("bundle-ready", bundle);
-                            }
-                            Err(err) => {
-                                eprintln!("[tsx-viewer] Bundle error: {}", err);
-                                let _ = handle.emit("bundle-error", err);
-                            }
+                            Ok(bundle) => { let _ = handle.emit("bundle-ready", bundle); }
+                            Err(err) => { let _ = handle.emit("bundle-error", err); }
                         }
 
                         if let Ok(w) = watcher::watch_file(handle.clone(), path) {
@@ -165,23 +147,15 @@ pub fn run() {
                 tauri::async_runtime::spawn(async move {
                     let state = handle.state::<AppState>();
                     let path = state.current_file.lock().unwrap().clone().unwrap();
-                    eprintln!("[tsx-viewer] CLI file: {:?}", path);
 
                     if let Some(window) = handle.get_webview_window("main") {
                         let name = path.file_name().unwrap_or_default().to_string_lossy();
                         let _ = window.set_title(&format!("{name} — TSX Viewer"));
                     }
 
-                    eprintln!("[tsx-viewer] Bundling {:?}...", path);
                     match bundler::bundle_tsx(&handle, &path).await {
-                        Ok(bundle) => {
-                            eprintln!("[tsx-viewer] Bundle success ({} bytes)", bundle.len());
-                            let _ = handle.emit("bundle-ready", bundle);
-                        }
-                        Err(err) => {
-                            eprintln!("[tsx-viewer] Bundle error: {}", err);
-                            let _ = handle.emit("bundle-error", err);
-                        }
+                        Ok(bundle) => { let _ = handle.emit("bundle-ready", bundle); }
+                        Err(err) => { let _ = handle.emit("bundle-error", err); }
                     }
 
                     if let Ok(w) = watcher::watch_file(handle.clone(), path) {
