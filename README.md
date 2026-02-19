@@ -48,10 +48,10 @@ Drop any `.tsx` file into Terrarium and it renders instantly as a standalone app
 
 Download the latest `.dmg` from [**Releases**](https://github.com/michellemayes/terrarium/releases), open it, and drag Terrarium to Applications.
 
-To use from the command line, add the CLI shortcut:
+To use from the command line, add this to your `~/.zshrc`:
 
 ```bash
-ln -sf /Applications/Terrarium.app/Contents/MacOS/Terrarium /usr/local/bin/terrarium
+alias terrarium="/Applications/Terrarium.app/Contents/MacOS/Terrarium"
 ```
 
 ### Requirements
