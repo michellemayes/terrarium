@@ -96,13 +96,22 @@ pub fn run() {
                 }
 
                 // Fallback: check raw args for a .tsx file path
+                // In dev mode, CWD may be src-tauri/, so also try parent directory
                 if !found_file {
                     for arg in std::env::args().skip(1) {
                         if arg.ends_with(".tsx") {
-                            let resolved = std::fs::canonicalize(&arg)
-                                .unwrap_or_else(|_| PathBuf::from(&arg));
-                            if resolved.exists() {
+                            let path = PathBuf::from(&arg);
+                            // Try as-is first (absolute or relative to CWD)
+                            if let Ok(resolved) = std::fs::canonicalize(&path) {
                                 *app.state::<AppState>().current_file.lock().unwrap() = Some(resolved);
+                                found_file = true;
+                                break;
+                            }
+                            // Try relative to parent dir (for tauri dev where CWD is src-tauri/)
+                            let from_parent = PathBuf::from("..").join(&path);
+                            if let Ok(resolved) = std::fs::canonicalize(&from_parent) {
+                                *app.state::<AppState>().current_file.lock().unwrap() = Some(resolved);
+                                found_file = true;
                                 break;
                             }
                         }
