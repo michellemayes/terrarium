@@ -2,7 +2,7 @@
   "name": "terrarium",
   "version": "0.1.0",
   "private": true,
-  "description": "A tiny terrarium for your TSX components",
+  "description": "A tiny terrarium to view your TSX components",
   "scripts": {
     "tauri": "tauri",
     "test": "vitest run",

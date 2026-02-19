@@ -6,26 +6,26 @@
 
     <!-- Glass panel gradients -->
     <linearGradient id="panelTopLeft" x1="0" y1="1" x2="0.8" y2="0">
-      <stop offset="0%" stop-color="#ddd6fe" stop-opacity="0.4"/>
-      <stop offset="100%" stop-color="#8b5cf6" stop-opacity="0.12"/>
+      <stop offset="0%" stop-color="#ddd6fe" stop-opacity="0.65"/>
+      <stop offset="100%" stop-color="#8b5cf6" stop-opacity="0.3"/>
     </linearGradient>
     <linearGradient id="panelTopRight" x1="1" y1="1" x2="0.2" y2="0">
-      <stop offset="0%" stop-color="#c4b5fd" stop-opacity="0.28"/>
-      <stop offset="100%" stop-color="#7c3aed" stop-opacity="0.15"/>
+      <stop offset="0%" stop-color="#c4b5fd" stop-opacity="0.5"/>
+      <stop offset="100%" stop-color="#7c3aed" stop-opacity="0.35"/>
     </linearGradient>
     <linearGradient id="panelLeft" x1="0" y1="0" x2="1" y2="1">
-      <stop offset="0%" stop-color="#c4b5fd" stop-opacity="0.32"/>
-      <stop offset="100%" stop-color="#6d28d9" stop-opacity="0.15"/>
+      <stop offset="0%" stop-color="#c4b5fd" stop-opacity="0.55"/>
+      <stop offset="100%" stop-color="#6d28d9" stop-opacity="0.3"/>
     </linearGradient>
     <linearGradient id="panelRight" x1="1" y1="0" x2="0" y2="1">
-      <stop offset="0%" stop-color="#a78bfa" stop-opacity="0.2"/>
-      <stop offset="100%" stop-color="#4c1d95" stop-opacity="0.28"/>
+      <stop offset="0%" stop-color="#a78bfa" stop-opacity="0.4"/>
+      <stop offset="100%" stop-color="#4c1d95" stop-opacity="0.45"/>
     </linearGradient>
 
     <!-- Inner glow -->
     <radialGradient id="innerGlow" cx="0.5" cy="0.48" r="0.45">
-      <stop offset="0%" stop-color="#e9d5ff" stop-opacity="0.18"/>
-      <stop offset="60%" stop-color="#7c3aed" stop-opacity="0.05"/>
+      <stop offset="0%" stop-color="#e9d5ff" stop-opacity="0.35"/>
+      <stop offset="60%" stop-color="#7c3aed" stop-opacity="0.12"/>
       <stop offset="100%" stop-color="transparent" stop-opacity="0"/>
     </radialGradient>
 
@@ -53,58 +53,48 @@
   </defs>
 
   <!-- Background -->
-  <rect x="16" y="16" width="480" height="480" rx="108" ry="108" fill="#1e1035"/>
+  <rect x="16" y="16" width="480" height="480" rx="108" ry="108" fill="#2d1854"/>
 
   <g clip-path="url(#iconMask)">
 
     <!-- Ambient glow behind terrarium -->
-    <ellipse cx="256" cy="280" rx="175" ry="195" fill="#2d1652" opacity="0.5"/>
-    <ellipse cx="256" cy="270" rx="120" ry="140" fill="#3b1f6e" opacity="0.25"/>
-
-    <!--
-      BIGGER GEOMETRIC TERRARIUM
-      Top apex: 256, 52
-      Upper left: 100, 240
-      Upper right: 412, 240
-      Lower left: 128, 395
-      Lower right: 384, 395
-      Bottom vertex: 256, 462
-    -->
+    <ellipse cx="256" cy="280" rx="175" ry="195" fill="#4a2080" opacity="0.6"/>
+    <ellipse cx="256" cy="270" rx="120" ry="140" fill="#5b2d9e" opacity="0.35"/>
 
     <!-- Full silhouette base -->
     <path d="M 256 52 L 100 240 L 128 395 L 256 462 L 384 395 L 412 240 Z"
-          fill="#1a0e30"/>
+          fill="#1e1040"/>
 
     <!-- Top-left panel -->
     <path d="M 256 52 L 100 240 L 256 240 Z"
-          fill="url(#panelTopLeft)" stroke="#8b6cc5" stroke-width="3" stroke-linejoin="round"/>
+          fill="url(#panelTopLeft)" stroke="#a88de0" stroke-width="3" stroke-linejoin="round"/>
 
     <!-- Top-right panel -->
     <path d="M 256 52 L 256 240 L 412 240 Z"
-          fill="url(#panelTopRight)" stroke="#8b6cc5" stroke-width="3" stroke-linejoin="round"/>
+          fill="url(#panelTopRight)" stroke="#a88de0" stroke-width="3" stroke-linejoin="round"/>
 
     <!-- Bottom-left panel -->
     <path d="M 100 240 L 128 395 L 256 462 L 256 240 Z"
-          fill="url(#panelLeft)" stroke="#8b6cc5" stroke-width="3" stroke-linejoin="round"/>
+          fill="url(#panelLeft)" stroke="#a88de0" stroke-width="3" stroke-linejoin="round"/>
 
     <!-- Bottom-right panel -->
     <path d="M 256 240 L 256 462 L 384 395 L 412 240 Z"
-          fill="url(#panelRight)" stroke="#8b6cc5" stroke-width="3" stroke-linejoin="round"/>
+          fill="url(#panelRight)" stroke="#a88de0" stroke-width="3" stroke-linejoin="round"/>
 
     <!-- Horizontal seam -->
-    <line x1="100" y1="240" x2="412" y2="240" stroke="#8b6cc5" stroke-width="3"/>
+    <line x1="100" y1="240" x2="412" y2="240" stroke="#a88de0" stroke-width="3"/>
 
     <!-- Lower horizontal facet -->
-    <line x1="128" y1="395" x2="384" y2="395" stroke="#8b6cc5" stroke-width="2.5" stroke-opacity="0.5"/>
+    <line x1="128" y1="395" x2="384" y2="395" stroke="#a88de0" stroke-width="2.5" stroke-opacity="0.6"/>
 
     <!-- Diagonal facets (faint) -->
-    <line x1="100" y1="240" x2="256" y2="462" stroke="#8b6cc5" stroke-width="1.8" stroke-opacity="0.3"/>
-    <line x1="412" y1="240" x2="256" y2="462" stroke="#8b6cc5" stroke-width="1.8" stroke-opacity="0.3"/>
+    <line x1="100" y1="240" x2="256" y2="462" stroke="#a88de0" stroke-width="1.8" stroke-opacity="0.4"/>
+    <line x1="412" y1="240" x2="256" y2="462" stroke="#a88de0" stroke-width="1.8" stroke-opacity="0.4"/>
 
     <!-- Glass highlights -->
-    <path d="M 256 68 L 118 232 L 244 232 Z" fill="#e8deff" opacity="0.08"/>
-    <path d="M 210 110 L 160 200 L 225 210 Z" fill="#f0eaff" opacity="0.12"/>
-    <path d="M 108 248 L 132 370 L 185 320 L 155 252 Z" fill="#ddd6fe" opacity="0.06"/>
+    <path d="M 256 68 L 118 232 L 244 232 Z" fill="#e8deff" opacity="0.15"/>
+    <path d="M 210 110 L 160 200 L 225 210 Z" fill="#f0eaff" opacity="0.2"/>
+    <path d="M 108 248 L 132 370 L 185 320 L 155 252 Z" fill="#ddd6fe" opacity="0.1"/>
 
     <!-- Inner glow -->
     <ellipse cx="256" cy="320" rx="110" ry="120" fill="url(#innerGlow)"/>
@@ -113,15 +103,15 @@
     <g filter="url(#bracketGlow)">
       <!-- Left bracket < -->
       <path d="M 205 280 L 168 318 L 205 356"
-            fill="none" stroke="#e2d6ff" stroke-width="12" stroke-linecap="round" stroke-linejoin="round"/>
+            fill="none" stroke="#ffffff" stroke-width="12" stroke-linecap="round" stroke-linejoin="round"/>
 
       <!-- Slash / -->
       <path d="M 272 274 L 240 362"
-            fill="none" stroke="#e2d6ff" stroke-width="11" stroke-linecap="round"/>
+            fill="none" stroke="#ffffff" stroke-width="11" stroke-linecap="round"/>
 
       <!-- Right bracket > -->
       <path d="M 307 280 L 344 318 L 307 356"
-            fill="none" stroke="#e2d6ff" stroke-width="12" stroke-linecap="round" stroke-linejoin="round"/>
+            fill="none" stroke="#ffffff" stroke-width="12" stroke-linecap="round" stroke-linejoin="round"/>
     </g>
 
     <!-- === NEON PINK SPARKLES (4-pointed stars) === -->
@@ -129,43 +119,43 @@
     <!-- Large sparkle top-right -->
     <g filter="url(#neonGlow)" transform="translate(408, 105)">
       <path d="M 0 -14 L 3.5 -3.5 L 14 0 L 3.5 3.5 L 0 14 L -3.5 3.5 L -14 0 L -3.5 -3.5 Z"
-            fill="#ff79c6"/>
+            fill="#ff8ad0"/>
     </g>
 
     <!-- Medium sparkle top-left -->
     <g filter="url(#neonGlow)" transform="translate(88, 140)">
       <path d="M 0 -10 L 2.5 -2.5 L 10 0 L 2.5 2.5 L 0 10 L -2.5 2.5 L -10 0 L -2.5 -2.5 Z"
-            fill="#f0a0d0"/>
+            fill="#f5b0e0"/>
     </g>
 
     <!-- Medium sparkle right -->
     <g filter="url(#neonGlow)" transform="translate(430, 310)">
       <path d="M 0 -9 L 2.2 -2.2 L 9 0 L 2.2 2.2 L 0 9 L -2.2 2.2 L -9 0 L -2.2 -2.2 Z"
-            fill="#ff6eb4"/>
+            fill="#ff85c8"/>
     </g>
 
     <!-- Small sparkle left -->
     <g filter="url(#neonGlow)" transform="translate(72, 350)">
       <path d="M 0 -7 L 1.8 -1.8 L 7 0 L 1.8 1.8 L 0 7 L -1.8 1.8 L -7 0 L -1.8 -1.8 Z"
-            fill="#f7b0d8"/>
+            fill="#ffc0e8"/>
     </g>
 
     <!-- Small sparkle bottom-right -->
     <g filter="url(#neonGlow)" transform="translate(405, 435)">
       <path d="M 0 -6 L 1.5 -1.5 L 6 0 L 1.5 1.5 L 0 6 L -1.5 1.5 L -6 0 L -1.5 -1.5 Z"
-            fill="#ff79c6"/>
+            fill="#ff8ad0"/>
     </g>
 
     <!-- Tiny sparkle upper area -->
     <g filter="url(#neonGlow)" transform="translate(440, 195)">
       <path d="M 0 -5 L 1.2 -1.2 L 5 0 L 1.2 1.2 L 0 5 L -1.2 1.2 L -5 0 L -1.2 -1.2 Z"
-            fill="#f0a0d0"/>
+            fill="#f5b0e0"/>
     </g>
 
     <!-- Tiny sparkle bottom-left -->
     <g filter="url(#neonGlow)" transform="translate(100, 445)">
       <path d="M 0 -5 L 1.2 -1.2 L 5 0 L 1.2 1.2 L 0 5 L -1.2 1.2 L -5 0 L -1.2 -1.2 Z"
-            fill="#f7b0d8"/>
+            fill="#ffc0e8"/>
     </g>
 
   </g>

@@ -5,8 +5,11 @@ const root = document.getElementById('root');
 const errorBanner = document.getElementById('error-banner');
 const errorDetail = document.getElementById('error-detail');
 const errorToggle = document.getElementById('error-toggle');
+const dropOverlay = document.getElementById('drop-overlay');
+const openAnother = document.getElementById('open-another');
 
 let detailExpanded = true;
+let hasRendered = false;
 
 function showError(message) {
   errorDetail.textContent = message;
@@ -33,10 +36,34 @@ async function renderBundle(bundledCode) {
     hideError();
     root.innerHTML = '';
     new Function(bundledCode)();
+    hasRendered = true;
+    openAnother.style.display = 'block';
   } catch (err) {
     showError(`Render error:\n${err.message}\n\n${err.stack || ''}`);
   }
 }
+
+function openFilePicker() {
+  invoke('pick_and_open_file')
+    .then(renderBundle)
+    .catch(err => {
+      if (err !== 'No file selected') {
+        showError(`Failed to load:\n${err}`);
+      }
+    });
+}
+
+function openFileByPath(filePath) {
+  invoke('open_file', { path: filePath })
+    .then(renderBundle)
+    .catch(err => showError(`Failed to load:\n${err}`));
+}
+
+const openBtn = document.getElementById('open-btn');
+if (openBtn) {
+  openBtn.addEventListener('click', openFilePicker);
+}
+openAnother.addEventListener('click', openFilePicker);
 
 listen('bundle-ready', (event) => {
   renderBundle(event.payload);
@@ -46,8 +73,32 @@ listen('bundle-error', (event) => {
   showError(event.payload);
 });
 
+listen('no-file', () => {});
+
+// Drag-and-drop support
+listen('tauri://drag-drop', (event) => {
+  dropOverlay.classList.remove('visible');
+  const paths = event.payload.paths;
+  if (paths && paths.length > 0) {
+    const tsxFile = paths.find(p => p.endsWith('.tsx'));
+    if (tsxFile) {
+      openFileByPath(tsxFile);
+    } else {
+      showError('Only .tsx files are supported');
+    }
+  }
+});
+
+listen('tauri://drag-enter', () => {
+  dropOverlay.classList.add('visible');
+});
+
+listen('tauri://drag-leave', () => {
+  dropOverlay.classList.remove('visible');
+});
+
 invoke('request_bundle')
-  .then(bundle => renderBundle(bundle))
+  .then(renderBundle)
   .catch(err => {
     if (err !== 'No file loaded') {
       showError(`Failed to load:\n${err}`);

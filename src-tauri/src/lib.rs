@@ -30,7 +30,6 @@ async fn open_file(app: tauri::AppHandle, state: State<'_, AppState>, path: Stri
 
     let bundle_result = bundler::bundle_tsx(&app, &tsx_path).await;
 
-    // Start watching the new file
     if let Ok(w) = watcher::watch_file(app.clone(), tsx_path) {
         *state.watcher.lock().map_err(|_| "Internal state error".to_string())? = Some(w);
     }
@@ -39,27 +38,26 @@ async fn open_file(app: tauri::AppHandle, state: State<'_, AppState>, path: Stri
 }
 
 #[tauri::command]
-async fn request_bundle(app: tauri::AppHandle, state: State<'_, AppState>) -> Result<String, String> {
-    let file = state.current_file.lock()
-        .map_err(|_| "Internal state error".to_string())?
-        .clone();
-    match file {
-        Some(path) => bundler::bundle_tsx(&app, &path).await,
-        None => Err("No file loaded".to_string()),
-    }
+async fn pick_and_open_file(app: tauri::AppHandle, state: State<'_, AppState>) -> Result<String, String> {
+    use tauri_plugin_dialog::DialogExt;
+    let picked = app.dialog().file()
+        .add_filter("TSX Files", &["tsx"])
+        .blocking_pick_file()
+        .ok_or_else(|| "No file selected".to_string())?;
+    let path = picked.into_path().map_err(|e| format!("{e}"))?;
+    let path_str = path.to_string_lossy().to_string();
+    open_file(app, state, path_str).await
 }
 
 #[tauri::command]
-async fn watch_current_file(app: tauri::AppHandle, state: State<'_, AppState>) -> Result<(), String> {
-    let file = state.current_file.lock()
+async fn request_bundle(app: tauri::AppHandle, state: State<'_, AppState>) -> Result<String, String> {
+    let path = state.current_file.lock()
         .map_err(|_| "Internal state error".to_string())?
-        .clone();
-    if let Some(path) = file {
-        let w = watcher::watch_file(app, path)?;
-        *state.watcher.lock().map_err(|_| "Internal state error".to_string())? = Some(w);
-    }
-    Ok(())
+        .clone()
+        .ok_or_else(|| "No file loaded".to_string())?;
+    bundler::bundle_tsx(&app, &path).await
 }
+
 
 pub fn run() {
     tauri::Builder::default()
@@ -72,7 +70,7 @@ pub fn run() {
             current_file: Mutex::new(None),
             watcher: Mutex::new(None),
         })
-        .invoke_handler(tauri::generate_handler![open_file, request_bundle, watch_current_file])
+        .invoke_handler(tauri::generate_handler![open_file, pick_and_open_file, request_bundle])
         .setup(|app| {
             let app_handle = app.handle().clone();
 
@@ -81,19 +79,16 @@ pub fn run() {
             // (tauri dev passes extra flags like --no-default-features that the CLI plugin rejects)
             {
                 use tauri_plugin_cli::CliExt;
-                let mut found_file = false;
-                if let Ok(matches) = app.cli().matches() {
-                    if let Some(file_arg) = matches.args.get("file") {
-                        if let Some(path) = file_arg.value.as_str() {
-                            if !path.is_empty() {
-                                let resolved = std::fs::canonicalize(path)
-                                    .unwrap_or_else(|_| PathBuf::from(path));
-                                *app.state::<AppState>().current_file.lock().unwrap() = Some(resolved);
-                                found_file = true;
-                            }
-                        }
-                    }
-                }
+                let found_file = app.cli().matches().ok()
+                    .and_then(|m| m.args.get("file").cloned())
+                    .and_then(|a| a.value.as_str().map(String::from))
+                    .filter(|p| !p.is_empty())
+                    .map(|path| {
+                        let resolved = std::fs::canonicalize(&path)
+                            .unwrap_or_else(|_| PathBuf::from(&path));
+                        *app.state::<AppState>().current_file.lock().unwrap() = Some(resolved);
+                    })
+                    .is_some();
 
                 // Fallback: check raw args for a .tsx file path
                 // In dev mode, CWD may be src-tauri/, so also try parent directory
@@ -115,54 +110,30 @@ pub fn run() {
                 }
             }
 
-            let has_file = app.state::<AppState>().current_file.lock().unwrap().is_some();
-
-            if !has_file {
-                let handle = app_handle.clone();
-                tauri::async_runtime::spawn(async move {
-                    use tauri_plugin_dialog::DialogExt;
-                    let file = handle.dialog().file()
-                        .add_filter("TSX Files", &["tsx"])
-                        .blocking_pick_file();
-                    if let Some(picked) = file {
-                        let path = match picked.into_path() {
-                            Ok(p) => p,
-                            Err(_) => return,
-                        };
-                        let state = handle.state::<AppState>();
-                        *state.current_file.lock().unwrap() = Some(path.clone());
-
-                        match bundler::bundle_tsx(&handle, &path).await {
-                            Ok(bundle) => { let _ = handle.emit("bundle-ready", bundle); }
-                            Err(err) => { let _ = handle.emit("bundle-error", err); }
-                        }
-
-                        if let Ok(w) = watcher::watch_file(handle.clone(), path) {
-                            *state.watcher.lock().unwrap() = Some(w);
-                        }
-                    }
-                });
-            } else {
-                let handle = app_handle.clone();
-                tauri::async_runtime::spawn(async move {
-                    let state = handle.state::<AppState>();
-                    let path = state.current_file.lock().unwrap().clone().unwrap();
-
-                    if let Some(window) = handle.get_webview_window("main") {
-                        let name = path.file_name().unwrap_or_default().to_string_lossy();
-                        let _ = window.set_title(&format!("{name} — Terrarium"));
-                    }
-
-                    match bundler::bundle_tsx(&handle, &path).await {
-                        Ok(bundle) => { let _ = handle.emit("bundle-ready", bundle); }
-                        Err(err) => { let _ = handle.emit("bundle-error", err); }
-                    }
-
-                    if let Ok(w) = watcher::watch_file(handle.clone(), path) {
-                        *state.watcher.lock().unwrap() = Some(w);
-                    }
-                });
+            if app.state::<AppState>().current_file.lock().unwrap().is_none() {
+                let _ = app_handle.emit("no-file", ());
+                return Ok(());
             }
+
+            let handle = app_handle.clone();
+            tauri::async_runtime::spawn(async move {
+                let state = handle.state::<AppState>();
+                let path = state.current_file.lock().unwrap().clone().unwrap();
+
+                if let Some(window) = handle.get_webview_window("main") {
+                    let name = path.file_name().unwrap_or_default().to_string_lossy();
+                    let _ = window.set_title(&format!("{name} — Terrarium"));
+                }
+
+                match bundler::bundle_tsx(&handle, &path).await {
+                    Ok(bundle) => { let _ = handle.emit("bundle-ready", bundle); }
+                    Err(err) => { let _ = handle.emit("bundle-error", err); }
+                }
+
+                if let Ok(w) = watcher::watch_file(handle.clone(), path) {
+                    *state.watcher.lock().unwrap() = Some(w);
+                }
+            });
 
             Ok(())
         })

@@ -9,14 +9,86 @@
     * { margin: 0; padding: 0; box-sizing: border-box; }
     body { min-height: 100vh; font-family: -apple-system, system-ui, sans-serif; }
     #root { min-height: 100vh; transition: opacity 0.2s; }
-    #loading {
+    #welcome {
       display: flex;
+      flex-direction: column;
       align-items: center;
       justify-content: center;
       height: 100vh;
-      color: #888;
-      font-size: 15px;
+      background: linear-gradient(135deg, #1e1035 0%, #2d1854 50%, #1e1035 100%);
+      color: #c4b5fd;
+      user-select: none;
     }
+    #welcome svg {
+      width: 96px;
+      height: 96px;
+      margin-bottom: 24px;
+      opacity: 0.85;
+    }
+    #welcome h1 {
+      font-size: 28px;
+      font-weight: 600;
+      color: #e9d5ff;
+      margin-bottom: 8px;
+    }
+    #welcome p {
+      font-size: 14px;
+      color: #8b7aab;
+      margin-bottom: 32px;
+    }
+    #open-btn {
+      background: linear-gradient(135deg, #7c3aed, #6d28d9);
+      color: #fff;
+      border: none;
+      padding: 12px 32px;
+      border-radius: 10px;
+      font-size: 15px;
+      font-weight: 500;
+      cursor: pointer;
+      transition: transform 0.1s, box-shadow 0.2s;
+      box-shadow: 0 4px 20px rgba(124, 58, 237, 0.3);
+    }
+    #open-btn:hover {
+      transform: scale(1.03);
+      box-shadow: 0 6px 28px rgba(124, 58, 237, 0.45);
+    }
+    #open-btn:active { transform: scale(0.98); }
+    #drop-hint {
+      margin-top: 20px;
+      font-size: 12px;
+      color: #6b5a8a;
+    }
+    #drop-overlay {
+      display: none;
+      position: fixed;
+      inset: 0;
+      background: rgba(124, 58, 237, 0.15);
+      border: 3px dashed #a78bfa;
+      z-index: 9998;
+      align-items: center;
+      justify-content: center;
+      font-size: 18px;
+      font-weight: 500;
+      color: #c4b5fd;
+    }
+    #drop-overlay.visible { display: flex; }
+    #open-another {
+      position: fixed;
+      top: 12px;
+      right: 12px;
+      background: rgba(124, 58, 237, 0.85);
+      color: #fff;
+      border: none;
+      padding: 6px 14px;
+      border-radius: 7px;
+      font-size: 12px;
+      font-weight: 500;
+      cursor: pointer;
+      z-index: 9997;
+      display: none;
+      transition: opacity 0.15s;
+    }
+    #open-another:hover { background: rgba(124, 58, 237, 1); }
     #error-banner {
       position: fixed;
       bottom: 0;
@@ -72,8 +144,56 @@
 </head>
 <body>
   <div id="root">
-    <div id="loading">Loading component...</div>
+    <div id="welcome">
+      <svg viewBox="0 0 512 512" xmlns="http://www.w3.org/2000/svg">
+        <defs>
+          <linearGradient id="wPanelTL" x1="0" y1="1" x2="0.8" y2="0">
+            <stop offset="0%" stop-color="#ddd6fe" stop-opacity="0.65"/>
+            <stop offset="100%" stop-color="#8b5cf6" stop-opacity="0.3"/>
+          </linearGradient>
+          <linearGradient id="wPanelTR" x1="1" y1="1" x2="0.2" y2="0">
+            <stop offset="0%" stop-color="#c4b5fd" stop-opacity="0.5"/>
+            <stop offset="100%" stop-color="#7c3aed" stop-opacity="0.35"/>
+          </linearGradient>
+          <linearGradient id="wPanelBL" x1="0" y1="0" x2="1" y2="1">
+            <stop offset="0%" stop-color="#c4b5fd" stop-opacity="0.55"/>
+            <stop offset="100%" stop-color="#6d28d9" stop-opacity="0.3"/>
+          </linearGradient>
+          <linearGradient id="wPanelBR" x1="1" y1="0" x2="0" y2="1">
+            <stop offset="0%" stop-color="#a78bfa" stop-opacity="0.4"/>
+            <stop offset="100%" stop-color="#4c1d95" stop-opacity="0.45"/>
+          </linearGradient>
+        </defs>
+        <!-- Ambient glow -->
+        <ellipse cx="256" cy="280" rx="175" ry="195" fill="#4a2080" opacity="0.4"/>
+        <!-- Terrarium base -->
+        <path d="M 256 52 L 100 240 L 128 395 L 256 462 L 384 395 L 412 240 Z" fill="#1e1040"/>
+        <!-- Panels -->
+        <path d="M 256 52 L 100 240 L 256 240 Z" fill="url(#wPanelTL)" stroke="#a88de0" stroke-width="3" stroke-linejoin="round"/>
+        <path d="M 256 52 L 256 240 L 412 240 Z" fill="url(#wPanelTR)" stroke="#a88de0" stroke-width="3" stroke-linejoin="round"/>
+        <path d="M 100 240 L 128 395 L 256 462 L 256 240 Z" fill="url(#wPanelBL)" stroke="#a88de0" stroke-width="3" stroke-linejoin="round"/>
+        <path d="M 256 240 L 256 462 L 384 395 L 412 240 Z" fill="url(#wPanelBR)" stroke="#a88de0" stroke-width="3" stroke-linejoin="round"/>
+        <line x1="100" y1="240" x2="412" y2="240" stroke="#a88de0" stroke-width="3"/>
+        <!-- Glass highlight -->
+        <path d="M 210 110 L 160 200 L 225 210 Z" fill="#f0eaff" opacity="0.2"/>
+        <!-- Code brackets -->
+        <path d="M 205 280 L 168 318 L 205 356" fill="none" stroke="#ffffff" stroke-width="12" stroke-linecap="round" stroke-linejoin="round"/>
+        <path d="M 272 274 L 240 362" fill="none" stroke="#ffffff" stroke-width="11" stroke-linecap="round"/>
+        <path d="M 307 280 L 344 318 L 307 356" fill="none" stroke="#ffffff" stroke-width="12" stroke-linecap="round" stroke-linejoin="round"/>
+        <!-- Sparkles -->
+        <path transform="translate(408,105)" d="M 0 -14 L 3.5 -3.5 L 14 0 L 3.5 3.5 L 0 14 L -3.5 3.5 L -14 0 L -3.5 -3.5 Z" fill="#ff8ad0"/>
+        <path transform="translate(88,140)" d="M 0 -10 L 2.5 -2.5 L 10 0 L 2.5 2.5 L 0 10 L -2.5 2.5 L -10 0 L -2.5 -2.5 Z" fill="#f5b0e0"/>
+        <path transform="translate(430,310)" d="M 0 -9 L 2.2 -2.2 L 9 0 L 2.2 2.2 L 0 9 L -2.2 2.2 L -9 0 L -2.2 -2.2 Z" fill="#ff85c8"/>
+        <path transform="translate(72,350)" d="M 0 -7 L 1.8 -1.8 L 7 0 L 1.8 1.8 L 0 7 L -1.8 1.8 L -7 0 L -1.8 -1.8 Z" fill="#ffc0e8"/>
+      </svg>
+      <h1>Terrarium</h1>
+      <p>A tiny terrarium to view your TSX components</p>
+      <button id="open-btn">Open TSX File</button>
+      <span id="drop-hint">or drag and drop a .tsx file onto the app</span>
+    </div>
   </div>
+  <div id="drop-overlay">Drop .tsx file here</div>
+  <button id="open-another">Open File</button>
   <div id="error-banner">
     <div id="error-header" onclick="toggleError()">
       <span id="error-title">Build Error</span>

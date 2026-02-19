@@ -13,14 +13,15 @@
         "title": "Terrarium",
         "width": 800,
         "height": 600,
-        "resizable": true
+        "resizable": true,
+        "dragDropEnabled": true
       }
     ],
     "withGlobalTauri": true,
     "security": {
       "csp": null
     },
-    "macOSPrivateApi": true
+    "macOSPrivateApi": false
   },
   "bundle": {
     "active": true,
