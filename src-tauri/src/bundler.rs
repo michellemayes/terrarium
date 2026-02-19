@@ -8,57 +8,66 @@ pub fn cache_dir() -> PathBuf {
 }
 
 fn find_node() -> Result<PathBuf, String> {
-    // In a bundled .app, PATH is minimal (/usr/bin:/bin).
-    // Check common Node.js install locations explicitly.
-    let candidates = [
-        "/usr/local/bin/node",
-        "/opt/homebrew/bin/node",
-        // nvm
-        &format!(
-            "{}/.nvm/versions/node",
-            dirs::home_dir().unwrap_or_default().display()
-        ),
-        // fnm
-        &format!(
-            "{}/Library/Application Support/fnm/node-versions",
-            dirs::home_dir().unwrap_or_default().display()
-        ),
+    let home = dirs::home_dir().unwrap_or_default();
+
+    // Direct paths: Homebrew (Apple Silicon + Intel), official installer
+    let direct = [
+        PathBuf::from("/opt/homebrew/bin/node"),
+        PathBuf::from("/usr/local/bin/node"),
+        home.join(".volta/bin/node"),
     ];
-
-    for candidate in &candidates[..2] {
-        let p = PathBuf::from(candidate);
+    for p in &direct {
         if p.exists() {
-            return Ok(p);
+            return Ok(p.clone());
         }
     }
 
-    // nvm: find latest installed version
-    let nvm_dir = PathBuf::from(candidates[2]);
-    if nvm_dir.exists() {
-        if let Ok(entries) = std::fs::read_dir(&nvm_dir) {
-            let mut versions: Vec<PathBuf> = entries
-                .filter_map(|e| e.ok())
-                .map(|e| e.path())
-                .filter(|p| p.join("bin/node").exists())
-                .collect();
-            versions.sort();
-            if let Some(latest) = versions.last() {
-                return Ok(latest.join("bin/node"));
-            }
+    // Version managers: pick the latest installed version
+    let version_dirs = [
+        home.join(".nvm/versions/node"),
+        home.join("Library/Application Support/fnm/node-versions"),
+        home.join(".asdf/installs/nodejs"),
+    ];
+    for dir in &version_dirs {
+        if let Some(node) = find_latest_node_in(dir) {
+            return Ok(node);
         }
     }
 
-    // Fallback: try PATH (works in dev mode and if user has node in PATH)
-    if let Ok(output) = std::process::Command::new("which").arg("node").output() {
-        if output.status.success() {
-            let path = String::from_utf8_lossy(&output.stdout).trim().to_string();
-            if !path.is_empty() {
-                return Ok(PathBuf::from(path));
-            }
-        }
+    // Fallback: try user's login shell to resolve PATH (covers custom setups)
+    if let Some(node) = find_node_via_shell() {
+        return Ok(node);
     }
 
     Err("Node.js not found. Install it from https://nodejs.org".to_string())
+}
+
+fn find_latest_node_in(versions_dir: &Path) -> Option<PathBuf> {
+    let entries = std::fs::read_dir(versions_dir).ok()?;
+    let mut versions: Vec<PathBuf> = entries
+        .filter_map(|e| e.ok())
+        .map(|e| e.path())
+        .filter(|p| p.join("bin/node").exists())
+        .collect();
+    versions.sort();
+    versions.last().map(|p| p.join("bin/node"))
+}
+
+fn find_node_via_shell() -> Option<PathBuf> {
+    // Launch the user's login shell to get their full PATH,
+    // then use it to find node. This handles custom setups.
+    let shell = std::env::var("SHELL").unwrap_or_else(|_| "/bin/zsh".to_string());
+    let output = std::process::Command::new(&shell)
+        .args(["-l", "-c", "which node"])
+        .output()
+        .ok()?;
+    if output.status.success() {
+        let path = String::from_utf8_lossy(&output.stdout).trim().to_string();
+        if !path.is_empty() {
+            return Some(PathBuf::from(path));
+        }
+    }
+    None
 }
 
 pub fn bundler_script_path(app_handle: &tauri::AppHandle) -> PathBuf {
