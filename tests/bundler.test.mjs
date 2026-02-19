@@ -6,7 +6,7 @@ import * as os from 'os';
 
 const BUNDLER = path.resolve('src-tauri/resources/bundler.mjs');
 const FIXTURES = path.resolve('tests/fixtures');
-const TEST_CACHE = path.join(os.tmpdir(), 'tsx-viewer-test-cache-' + Date.now());
+const TEST_CACHE = path.join(os.tmpdir(), 'terrarium-test-cache-' + Date.now());
 
 function runBundler(fixtureName, env = {}) {
   const fixturePath = path.join(FIXTURES, fixtureName);
@@ -14,7 +14,7 @@ function runBundler(fixtureName, env = {}) {
     encoding: 'utf-8',
     timeout: 120000,
     maxBuffer: 50 * 1024 * 1024,
-    env: { ...process.env, TSX_VIEWER_CACHE_DIR: TEST_CACHE, ...env },
+    env: { ...process.env, TERRARIUM_CACHE_DIR: TEST_CACHE, ...env },
   });
 }
 
@@ -25,7 +25,7 @@ function runBundlerRaw(fixtureName, env = {}) {
       encoding: 'utf-8',
       timeout: 120000,
       maxBuffer: 50 * 1024 * 1024,
-      env: { ...process.env, TSX_VIEWER_CACHE_DIR: TEST_CACHE, ...env },
+      env: { ...process.env, TERRARIUM_CACHE_DIR: TEST_CACHE, ...env },
     });
     return { stdout, exitCode: 0 };
   } catch (err) {
@@ -44,8 +44,8 @@ describe('bundler.mjs', () => {
 
   describe('ensureCacheDir', () => {
     it('creates cache directory and package.json if missing', () => {
-      const testDir = path.join(os.tmpdir(), 'tsx-viewer-test-ensure-' + Date.now());
-      runBundlerRaw('simple-counter.tsx', { TSX_VIEWER_CACHE_DIR: testDir });
+      const testDir = path.join(os.tmpdir(), 'terrarium-test-ensure-' + Date.now());
+      runBundlerRaw('simple-counter.tsx', { TERRARIUM_CACHE_DIR: testDir });
       expect(fs.existsSync(testDir)).toBe(true);
       expect(fs.existsSync(path.join(testDir, 'package.json'))).toBe(true);
       fs.rmSync(testDir, { recursive: true, force: true });

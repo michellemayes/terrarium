@@ -1,8 +1,8 @@
 {
   "$schema": "https://schema.tauri.app/config/2",
-  "productName": "TSX Viewer",
+  "productName": "Terrarium",
   "version": "0.1.0",
-  "identifier": "com.tsx-viewer.app",
+  "identifier": "com.terrarium.app",
   "build": {
     "frontendDist": "../src"
   },
@@ -10,7 +10,7 @@
     "windows": [
       {
         "label": "main",
-        "title": "TSX Viewer",
+        "title": "Terrarium",
         "width": 800,
         "height": 600,
         "resizable": true
@@ -66,7 +66,7 @@
     "updater": {
       "active": false,
       "endpoints": [
-        "https://github.com/OWNER/tsx-viewer/releases/latest/download/latest.json"
+        "https://github.com/michellemayes/terrarium/releases/latest/download/latest.json"
       ],
       "pubkey": ""
     }

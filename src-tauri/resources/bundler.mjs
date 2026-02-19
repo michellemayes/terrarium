@@ -5,7 +5,7 @@ import * as fs from 'fs';
 import * as path from 'path';
 import * as os from 'os';
 
-const CACHE_DIR = process.env.TSX_VIEWER_CACHE_DIR || path.join(os.homedir(), '.tsx-viewer');
+const CACHE_DIR = process.env.TERRARIUM_CACHE_DIR || path.join(os.homedir(), '.terrarium');
 const NODE_MODULES = path.join(CACHE_DIR, 'node_modules');
 
 export function ensureCacheDir() {
@@ -14,14 +14,14 @@ export function ensureCacheDir() {
   }
   const pkgPath = path.join(CACHE_DIR, 'package.json');
   if (!fs.existsSync(pkgPath)) {
-    fs.writeFileSync(pkgPath, JSON.stringify({ name: 'tsx-viewer-cache', private: true }, null, 2));
+    fs.writeFileSync(pkgPath, JSON.stringify({ name: 'terrarium-cache', private: true }, null, 2));
   }
 }
 
 export function installPackages(packages) {
   if (packages.length === 0) return;
   const pkgList = packages.join(' ');
-  console.error(`[tsx-viewer] Installing: ${pkgList}`);
+  console.error(`[terrarium] Installing: ${pkgList}`);
   execSync(`npm install --prefix "${CACHE_DIR}" ${pkgList}`, {
     stdio: ['pipe', 'pipe', 'inherit'],
     timeout: 120000

@@ -1,23 +1,33 @@
-# TSX Viewer
+# Terrarium
 
-View Claude Artifact TSX files locally. A lightweight macOS app that renders TSX components with auto-installed dependencies and live reload.
+A tiny terrarium for your TSX components — a contained environment where they can live and grow.
+
+Terrarium is a lightweight macOS app that renders standalone TSX files instantly. It was built for previewing [Claude Artifacts](https://support.anthropic.com/en/articles/9487310-what-are-artifacts-and-how-do-i-use-them) locally: drop in a `.tsx` file and Terrarium auto-installs its npm dependencies, bundles it with esbuild, and renders the component in a live preview. When you edit the file externally, it hot-reloads automatically.
+
+## Features
+
+- Opens `.tsx` files via double-click, drag-and-drop, file picker, or CLI
+- Auto-detects and installs npm dependencies from imports
+- Bundles with esbuild and renders the default export as a React component
+- Watches for file changes and live-reloads on save
+- Build errors appear in a collapsible banner while keeping the last good render visible
+- Tailwind CSS available out of the box
 
 ## Install
 
-Download the latest `.dmg` from [Releases](https://github.com/OWNER/tsx-viewer/releases).
+Download the latest `.dmg` from [Releases](https://github.com/michellemayes/terrarium/releases).
 
 ## Usage
 
-- **Double-click** a `.tsx` file in Finder (after setting TSX Viewer as default)
+- **Double-click** a `.tsx` file in Finder (after setting Terrarium as the default app)
 - **Drag and drop** a `.tsx` file onto the app icon
-- **CLI:** `tsx-viewer myfile.tsx`
-
-Files auto-reload when edited externally. Build errors show in a collapsible bottom banner while keeping the last good render visible.
+- **CLI:** `terrarium myfile.tsx`
+- **File picker:** Launch the app with no arguments to browse for a file
 
 ## Requirements
 
 - macOS 12+
-- Node.js 18+ (for transpiling TSX files)
+- Node.js 18+ (for bundling TSX files)
 
 ## Development
 

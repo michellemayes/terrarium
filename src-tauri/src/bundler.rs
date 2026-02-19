@@ -4,7 +4,7 @@ use tokio::process::Command as AsyncCommand;
 pub fn cache_dir() -> PathBuf {
     dirs::home_dir()
         .expect("Could not find home directory")
-        .join(".tsx-viewer")
+        .join(".terrarium")
 }
 
 pub fn bundler_script_path(app_handle: &tauri::AppHandle) -> PathBuf {
@@ -49,7 +49,7 @@ mod tests {
     #[test]
     fn cache_dir_is_under_home() {
         let dir = cache_dir();
-        assert!(dir.to_string_lossy().contains(".tsx-viewer"));
+        assert!(dir.to_string_lossy().contains(".terrarium"));
         assert!(dir.is_absolute());
     }
 }

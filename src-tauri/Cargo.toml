@@ -1,12 +1,12 @@
 [package]
-name = "tsx-viewer"
+name = "terrarium"
 version = "0.1.0"
-description = "A lightweight TSX file viewer for Claude Artifacts"
+description = "A tiny terrarium for your TSX components"
 authors = [""]
 edition = "2021"
 
 [lib]
-name = "tsx_viewer_lib"
+name = "terrarium_lib"
 crate-type = ["staticlib", "cdylib", "rlib"]
 
 [build-dependencies]

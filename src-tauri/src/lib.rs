@@ -25,7 +25,7 @@ async fn open_file(app: tauri::AppHandle, state: State<'_, AppState>, path: Stri
 
     if let Some(window) = app.get_webview_window("main") {
         let filename = tsx_path.file_name().unwrap_or_default().to_string_lossy();
-        let _ = window.set_title(&format!("{filename} — TSX Viewer"));
+        let _ = window.set_title(&format!("{filename} — Terrarium"));
     }
 
     let bundle_result = bundler::bundle_tsx(&app, &tsx_path).await;
@@ -150,7 +150,7 @@ pub fn run() {
 
                     if let Some(window) = handle.get_webview_window("main") {
                         let name = path.file_name().unwrap_or_default().to_string_lossy();
-                        let _ = window.set_title(&format!("{name} — TSX Viewer"));
+                        let _ = window.set_title(&format!("{name} — Terrarium"));
                     }
 
                     match bundler::bundle_tsx(&handle, &path).await {

@@ -1,8 +1,8 @@
 #[test]
-fn cache_dir_returns_home_tsx_viewer() {
-    let dir = tsx_viewer_lib::bundler::cache_dir();
+fn cache_dir_returns_home_terrarium() {
+    let dir = terrarium_lib::bundler::cache_dir();
     let home = dirs::home_dir().unwrap();
-    assert_eq!(dir, home.join(".tsx-viewer"));
+    assert_eq!(dir, home.join(".terrarium"));
 }
 
 #[test]

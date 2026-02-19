@@ -1,8 +1,8 @@
 {
-  "name": "tsx-viewer",
+  "name": "terrarium",
   "version": "0.1.0",
   "private": true,
-  "description": "A lightweight TSX file viewer for Claude Artifacts",
+  "description": "A tiny terrarium for your TSX components",
   "scripts": {
     "tauri": "tauri",
     "test": "vitest run",

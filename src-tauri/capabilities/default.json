@@ -1,6 +1,6 @@
 {
   "identifier": "default",
-  "description": "Default capabilities for tsx-viewer",
+  "description": "Default capabilities for terrarium",
   "windows": ["*"],
   "permissions": [
     "core:default",

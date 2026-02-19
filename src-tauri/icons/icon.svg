@@ -1,35 +1,36 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024" width="1024" height="1024">
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512">
   <defs>
-    <!-- Rich purple gradient background -->
-    <linearGradient id="bgGrad" x1="0" y1="0" x2="1" y2="1">
-      <stop offset="0%" stop-color="#4a1a8a"/>
-      <stop offset="50%" stop-color="#6b2fa0"/>
-      <stop offset="100%" stop-color="#8b45c6"/>
+    <clipPath id="iconMask">
+      <rect x="16" y="16" width="480" height="480" rx="108" ry="108"/>
+    </clipPath>
+
+    <!-- Glass panel gradients -->
+    <linearGradient id="panelTopLeft" x1="0" y1="1" x2="0.8" y2="0">
+      <stop offset="0%" stop-color="#ddd6fe" stop-opacity="0.4"/>
+      <stop offset="100%" stop-color="#8b5cf6" stop-opacity="0.12"/>
+    </linearGradient>
+    <linearGradient id="panelTopRight" x1="1" y1="1" x2="0.2" y2="0">
+      <stop offset="0%" stop-color="#c4b5fd" stop-opacity="0.28"/>
+      <stop offset="100%" stop-color="#7c3aed" stop-opacity="0.15"/>
+    </linearGradient>
+    <linearGradient id="panelLeft" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#c4b5fd" stop-opacity="0.32"/>
+      <stop offset="100%" stop-color="#6d28d9" stop-opacity="0.15"/>
+    </linearGradient>
+    <linearGradient id="panelRight" x1="1" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#a78bfa" stop-opacity="0.2"/>
+      <stop offset="100%" stop-color="#4c1d95" stop-opacity="0.28"/>
     </linearGradient>
 
-    <!-- Petal gradient - soft pink/lavender -->
-    <linearGradient id="petalGrad" x1="0" y1="0" x2="0" y2="1">
-      <stop offset="0%" stop-color="#e8b4f8"/>
-      <stop offset="100%" stop-color="#c084fc"/>
-    </linearGradient>
+    <!-- Inner glow -->
+    <radialGradient id="innerGlow" cx="0.5" cy="0.48" r="0.45">
+      <stop offset="0%" stop-color="#e9d5ff" stop-opacity="0.18"/>
+      <stop offset="60%" stop-color="#7c3aed" stop-opacity="0.05"/>
+      <stop offset="100%" stop-color="transparent" stop-opacity="0"/>
+    </radialGradient>
 
-    <!-- Inner petal gradient -->
-    <linearGradient id="petalInner" x1="0" y1="0" x2="0" y2="1">
-      <stop offset="0%" stop-color="#f0d0ff"/>
-      <stop offset="100%" stop-color="#d8a8f0"/>
-    </linearGradient>
-
-    <!-- Soft glow filter -->
-    <filter id="glow" x="-30%" y="-30%" width="160%" height="160%">
-      <feGaussianBlur in="SourceGraphic" stdDeviation="12" result="blur"/>
-      <feMerge>
-        <feMergeNode in="blur"/>
-        <feMergeNode in="SourceGraphic"/>
-      </feMerge>
-    </filter>
-
-    <!-- Code bracket glow -->
-    <filter id="codeGlow" x="-40%" y="-40%" width="180%" height="180%">
+    <!-- Code bracket glow - lavender/white -->
+    <filter id="bracketGlow" x="-40%" y="-40%" width="180%" height="180%">
       <feGaussianBlur in="SourceGraphic" stdDeviation="8" result="blur1"/>
       <feGaussianBlur in="SourceGraphic" stdDeviation="3" result="blur2"/>
       <feMerge>
@@ -38,95 +39,134 @@
         <feMergeNode in="SourceGraphic"/>
       </feMerge>
     </filter>
+
+    <!-- Neon pink sparkle glow -->
+    <filter id="neonGlow" x="-150%" y="-150%" width="400%" height="400%">
+      <feGaussianBlur in="SourceGraphic" stdDeviation="4" result="blur1"/>
+      <feGaussianBlur in="SourceGraphic" stdDeviation="1.5" result="blur2"/>
+      <feMerge>
+        <feMergeNode in="blur1"/>
+        <feMergeNode in="blur2"/>
+        <feMergeNode in="SourceGraphic"/>
+      </feMerge>
+    </filter>
   </defs>
 
-  <!-- Rounded-square background -->
-  <rect x="0" y="0" width="1024" height="1024" rx="225" ry="225" fill="url(#bgGrad)"/>
+  <!-- Background -->
+  <rect x="16" y="16" width="480" height="480" rx="108" ry="108" fill="#1e1035"/>
 
-  <!-- Subtle sparkle dots -->
-  <circle cx="180" cy="200" r="4" fill="#e8b4f8" opacity="0.5"/>
-  <circle cx="840" cy="180" r="3" fill="#f0d0ff" opacity="0.4"/>
-  <circle cx="160" cy="780" r="3" fill="#d8a8f0" opacity="0.4"/>
-  <circle cx="860" cy="820" r="4" fill="#e8b4f8" opacity="0.3"/>
-  <circle cx="300" cy="140" r="2" fill="#ffffff" opacity="0.5"/>
-  <circle cx="750" cy="880" r="2" fill="#ffffff" opacity="0.4"/>
+  <g clip-path="url(#iconMask)">
 
-  <!-- Flower petals around center - 5 petals -->
-  <g filter="url(#glow)" opacity="0.85">
-    <ellipse cx="512" cy="240" rx="95" ry="175" fill="url(#petalGrad)" transform="rotate(0, 512, 512)"/>
-    <ellipse cx="512" cy="240" rx="95" ry="175" fill="url(#petalGrad)" transform="rotate(72, 512, 512)"/>
-    <ellipse cx="512" cy="240" rx="95" ry="175" fill="url(#petalGrad)" transform="rotate(144, 512, 512)"/>
-    <ellipse cx="512" cy="240" rx="95" ry="175" fill="url(#petalGrad)" transform="rotate(216, 512, 512)"/>
-    <ellipse cx="512" cy="240" rx="95" ry="175" fill="url(#petalGrad)" transform="rotate(288, 512, 512)"/>
-  </g>
+    <!-- Ambient glow behind terrarium -->
+    <ellipse cx="256" cy="280" rx="175" ry="195" fill="#2d1652" opacity="0.5"/>
+    <ellipse cx="256" cy="270" rx="120" ry="140" fill="#3b1f6e" opacity="0.25"/>
 
-  <!-- Inner petal highlights -->
-  <g opacity="0.5">
-    <ellipse cx="512" cy="290" rx="55" ry="110" fill="url(#petalInner)" transform="rotate(0, 512, 512)"/>
-    <ellipse cx="512" cy="290" rx="55" ry="110" fill="url(#petalInner)" transform="rotate(72, 512, 512)"/>
-    <ellipse cx="512" cy="290" rx="55" ry="110" fill="url(#petalInner)" transform="rotate(144, 512, 512)"/>
-    <ellipse cx="512" cy="290" rx="55" ry="110" fill="url(#petalInner)" transform="rotate(216, 512, 512)"/>
-    <ellipse cx="512" cy="290" rx="55" ry="110" fill="url(#petalInner)" transform="rotate(288, 512, 512)"/>
-  </g>
+    <!--
+      BIGGER GEOMETRIC TERRARIUM
+      Top apex: 256, 52
+      Upper left: 100, 240
+      Upper right: 412, 240
+      Lower left: 128, 395
+      Lower right: 384, 395
+      Bottom vertex: 256, 462
+    -->
 
-  <!-- Flower center circle - large -->
-  <circle cx="512" cy="512" r="250" fill="#2d1065" opacity="0.9"/>
-  <circle cx="512" cy="512" r="220" fill="#3b1580"/>
+    <!-- Full silhouette base -->
+    <path d="M 256 52 L 100 240 L 128 395 L 256 462 L 384 395 L 412 240 Z"
+          fill="#1a0e30"/>
 
-  <!-- Code brackets </> inside the flower center - large -->
-  <g filter="url(#codeGlow)">
-    <!-- Left bracket < -->
-    <polyline
-      points="420,430 350,512 420,594"
-      fill="none"
-      stroke="#e8b4f8"
-      stroke-width="28"
-      stroke-linecap="round"
-      stroke-linejoin="round"
-    />
-    <!-- Right bracket > -->
-    <polyline
-      points="604,430 674,512 604,594"
-      fill="none"
-      stroke="#e8b4f8"
-      stroke-width="28"
-      stroke-linecap="round"
-      stroke-linejoin="round"
-    />
-    <!-- Forward slash / -->
-    <line
-      x1="568" y1="405"
-      x2="456" y2="619"
-      stroke="#f0d0ff"
-      stroke-width="22"
-      stroke-linecap="round"
-    />
-  </g>
+    <!-- Top-left panel -->
+    <path d="M 256 52 L 100 240 L 256 240 Z"
+          fill="url(#panelTopLeft)" stroke="#8b6cc5" stroke-width="3" stroke-linejoin="round"/>
 
-  <!-- White highlight on brackets for pop -->
-  <g opacity="0.6">
-    <polyline
-      points="420,430 350,512 420,594"
-      fill="none"
-      stroke="#ffffff"
-      stroke-width="12"
-      stroke-linecap="round"
-      stroke-linejoin="round"
-    />
-    <polyline
-      points="604,430 674,512 604,594"
-      fill="none"
-      stroke="#ffffff"
-      stroke-width="12"
-      stroke-linecap="round"
-      stroke-linejoin="round"
-    />
-    <line
-      x1="568" y1="405"
-      x2="456" y2="619"
-      stroke="#ffffff"
-      stroke-width="8"
-      stroke-linecap="round"
-    />
+    <!-- Top-right panel -->
+    <path d="M 256 52 L 256 240 L 412 240 Z"
+          fill="url(#panelTopRight)" stroke="#8b6cc5" stroke-width="3" stroke-linejoin="round"/>
+
+    <!-- Bottom-left panel -->
+    <path d="M 100 240 L 128 395 L 256 462 L 256 240 Z"
+          fill="url(#panelLeft)" stroke="#8b6cc5" stroke-width="3" stroke-linejoin="round"/>
+
+    <!-- Bottom-right panel -->
+    <path d="M 256 240 L 256 462 L 384 395 L 412 240 Z"
+          fill="url(#panelRight)" stroke="#8b6cc5" stroke-width="3" stroke-linejoin="round"/>
+
+    <!-- Horizontal seam -->
+    <line x1="100" y1="240" x2="412" y2="240" stroke="#8b6cc5" stroke-width="3"/>
+
+    <!-- Lower horizontal facet -->
+    <line x1="128" y1="395" x2="384" y2="395" stroke="#8b6cc5" stroke-width="2.5" stroke-opacity="0.5"/>
+
+    <!-- Diagonal facets (faint) -->
+    <line x1="100" y1="240" x2="256" y2="462" stroke="#8b6cc5" stroke-width="1.8" stroke-opacity="0.3"/>
+    <line x1="412" y1="240" x2="256" y2="462" stroke="#8b6cc5" stroke-width="1.8" stroke-opacity="0.3"/>
+
+    <!-- Glass highlights -->
+    <path d="M 256 68 L 118 232 L 244 232 Z" fill="#e8deff" opacity="0.08"/>
+    <path d="M 210 110 L 160 200 L 225 210 Z" fill="#f0eaff" opacity="0.12"/>
+    <path d="M 108 248 L 132 370 L 185 320 L 155 252 Z" fill="#ddd6fe" opacity="0.06"/>
+
+    <!-- Inner glow -->
+    <ellipse cx="256" cy="320" rx="110" ry="120" fill="url(#innerGlow)"/>
+
+    <!-- === CODE BRACKETS </> as clean vector paths === -->
+    <g filter="url(#bracketGlow)">
+      <!-- Left bracket < -->
+      <path d="M 205 280 L 168 318 L 205 356"
+            fill="none" stroke="#e2d6ff" stroke-width="12" stroke-linecap="round" stroke-linejoin="round"/>
+
+      <!-- Slash / -->
+      <path d="M 272 274 L 240 362"
+            fill="none" stroke="#e2d6ff" stroke-width="11" stroke-linecap="round"/>
+
+      <!-- Right bracket > -->
+      <path d="M 307 280 L 344 318 L 307 356"
+            fill="none" stroke="#e2d6ff" stroke-width="12" stroke-linecap="round" stroke-linejoin="round"/>
+    </g>
+
+    <!-- === NEON PINK SPARKLES (4-pointed stars) === -->
+
+    <!-- Large sparkle top-right -->
+    <g filter="url(#neonGlow)" transform="translate(408, 105)">
+      <path d="M 0 -14 L 3.5 -3.5 L 14 0 L 3.5 3.5 L 0 14 L -3.5 3.5 L -14 0 L -3.5 -3.5 Z"
+            fill="#ff79c6"/>
+    </g>
+
+    <!-- Medium sparkle top-left -->
+    <g filter="url(#neonGlow)" transform="translate(88, 140)">
+      <path d="M 0 -10 L 2.5 -2.5 L 10 0 L 2.5 2.5 L 0 10 L -2.5 2.5 L -10 0 L -2.5 -2.5 Z"
+            fill="#f0a0d0"/>
+    </g>
+
+    <!-- Medium sparkle right -->
+    <g filter="url(#neonGlow)" transform="translate(430, 310)">
+      <path d="M 0 -9 L 2.2 -2.2 L 9 0 L 2.2 2.2 L 0 9 L -2.2 2.2 L -9 0 L -2.2 -2.2 Z"
+            fill="#ff6eb4"/>
+    </g>
+
+    <!-- Small sparkle left -->
+    <g filter="url(#neonGlow)" transform="translate(72, 350)">
+      <path d="M 0 -7 L 1.8 -1.8 L 7 0 L 1.8 1.8 L 0 7 L -1.8 1.8 L -7 0 L -1.8 -1.8 Z"
+            fill="#f7b0d8"/>
+    </g>
+
+    <!-- Small sparkle bottom-right -->
+    <g filter="url(#neonGlow)" transform="translate(405, 435)">
+      <path d="M 0 -6 L 1.5 -1.5 L 6 0 L 1.5 1.5 L 0 6 L -1.5 1.5 L -6 0 L -1.5 -1.5 Z"
+            fill="#ff79c6"/>
+    </g>
+
+    <!-- Tiny sparkle upper area -->
+    <g filter="url(#neonGlow)" transform="translate(440, 195)">
+      <path d="M 0 -5 L 1.2 -1.2 L 5 0 L 1.2 1.2 L 0 5 L -1.2 1.2 L -5 0 L -1.2 -1.2 Z"
+            fill="#f0a0d0"/>
+    </g>
+
+    <!-- Tiny sparkle bottom-left -->
+    <g filter="url(#neonGlow)" transform="translate(100, 445)">
+      <path d="M 0 -5 L 1.2 -1.2 L 5 0 L 1.2 1.2 L 0 5 L -1.2 1.2 L -5 0 L -1.2 -1.2 Z"
+            fill="#f7b0d8"/>
+    </g>
+
   </g>
 </svg>

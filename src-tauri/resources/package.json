@@ -1,5 +1,5 @@
 {
-  "name": "tsx-viewer-bundler",
+  "name": "terrarium-bundler",
   "private": true,
   "type": "module"
 }
