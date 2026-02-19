@@ -1,3 +1,8 @@
+---
+name: release
+description: Walk through shipping a new release of Terrarium
+---
+
 Walk me through shipping a new release of Terrarium. For each step, wait for my confirmation before proceeding to the next.
 
 ## Steps
