@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 
-import { execSync } from 'child_process';
+import { execFileSync } from 'child_process';
 import * as fs from 'fs';
 import * as path from 'path';
 import * as os from 'os';
@@ -20,9 +20,8 @@ export function ensureCacheDir() {
 
 export function installPackages(packages) {
   if (packages.length === 0) return;
-  const pkgList = packages.join(' ');
-  console.error(`[terrarium] Installing: ${pkgList}`);
-  execSync(`npm install --prefix "${CACHE_DIR}" ${pkgList}`, {
+  console.error(`[terrarium] Installing: ${packages.join(' ')}`);
+  execFileSync('npm', ['install', '--prefix', CACHE_DIR, ...packages], {
     stdio: ['pipe', 'pipe', 'inherit'],
     timeout: 120000
   });

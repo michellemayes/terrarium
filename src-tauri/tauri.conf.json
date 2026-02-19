@@ -19,7 +19,7 @@
     ],
     "withGlobalTauri": true,
     "security": {
-      "csp": null
+      "csp": "default-src 'self'; script-src 'self' 'unsafe-eval' https://cdn.tailwindcss.com; style-src 'self' 'unsafe-inline'; connect-src ipc: http://ipc.localhost https://cdn.tailwindcss.com"
     },
     "macOSPrivateApi": false
   },

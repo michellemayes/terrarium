@@ -101,6 +101,10 @@ npm test
 cd src-tauri && cargo test
 ```
 
+## Security
+
+Terrarium executes the code in any TSX file you open. Only open files you trust &mdash; treat `.tsx` files like executables.
+
 ## Built With
 
 - [Tauri](https://tauri.app) &mdash; native app shell

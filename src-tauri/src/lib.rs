@@ -138,6 +138,7 @@ pub fn run() {
         })
         .setup(|app| {
             let app_handle = app.handle().clone();
+            let state = app.state::<AppState>();
 
             // Handle CLI arguments
             // Try the CLI plugin first, fall back to std::env::args for dev mode
@@ -154,26 +155,28 @@ pub fn run() {
                     .map(|path| {
                         let resolved =
                             std::fs::canonicalize(&path).unwrap_or_else(|_| PathBuf::from(&path));
-                        *app.state::<AppState>().current_file.lock().unwrap() = Some(resolved);
+                        if let Ok(mut file) = state.current_file.lock() {
+                            *file = Some(resolved);
+                        }
                     })
                     .is_some();
 
                 // Fallback: check raw args for a .tsx file path
                 // In dev mode, CWD may be src-tauri/, so also try parent directory
                 if !found_file {
-                    for arg in std::env::args().skip(1) {
-                        if arg.ends_with(".tsx") {
-                            let path = PathBuf::from(&arg);
-                            if let Ok(resolved) = std::fs::canonicalize(&path) {
-                                *app.state::<AppState>().current_file.lock().unwrap() =
-                                    Some(resolved);
-                                break;
-                            }
-                            let from_parent = PathBuf::from("..").join(&path);
-                            if let Ok(resolved) = std::fs::canonicalize(&from_parent) {
-                                *app.state::<AppState>().current_file.lock().unwrap() =
-                                    Some(resolved);
-                                break;
+                    if let Ok(mut file) = state.current_file.lock() {
+                        for arg in std::env::args().skip(1) {
+                            if arg.ends_with(".tsx") {
+                                let path = PathBuf::from(&arg);
+                                if let Ok(resolved) = std::fs::canonicalize(&path) {
+                                    *file = Some(resolved);
+                                    break;
+                                }
+                                let from_parent = PathBuf::from("..").join(&path);
+                                if let Ok(resolved) = std::fs::canonicalize(&from_parent) {
+                                    *file = Some(resolved);
+                                    break;
+                                }
                             }
                         }
                     }
@@ -191,13 +194,13 @@ pub fn run() {
                 }
             });
 
-            if app
-                .state::<AppState>()
+            let has_file = state
                 .current_file
                 .lock()
-                .unwrap()
-                .is_none()
-            {
+                .map(|f| f.is_some())
+                .unwrap_or(false);
+
+            if !has_file {
                 let _ = app_handle.emit("no-file", ());
                 return Ok(());
             }
@@ -205,7 +208,10 @@ pub fn run() {
             let handle = app_handle.clone();
             tauri::async_runtime::spawn(async move {
                 let state = handle.state::<AppState>();
-                let path = state.current_file.lock().unwrap().clone().unwrap();
+                let path = match state.current_file.lock().ok().and_then(|f| f.clone()) {
+                    Some(p) => p,
+                    None => return,
+                };
 
                 if let Some(window) = handle.get_webview_window("main") {
                     let name = path.file_name().unwrap_or_default().to_string_lossy();
@@ -214,15 +220,21 @@ pub fn run() {
 
                 match bundler::bundle_tsx(&handle, &path).await {
                     Ok(bundle) => {
-                        let _ = handle.emit("bundle-ready", bundle);
+                        if handle.emit("bundle-ready", bundle).is_err() {
+                            log::warn!("Failed to emit bundle-ready event");
+                        }
                     }
                     Err(err) => {
-                        let _ = handle.emit("bundle-error", err);
+                        if handle.emit("bundle-error", err).is_err() {
+                            log::warn!("Failed to emit bundle-error event");
+                        }
                     }
                 }
 
                 if let Ok(w) = watcher::watch_file(handle.clone(), path) {
-                    *state.watcher.lock().unwrap() = Some(w);
+                    if let Ok(mut watcher) = state.watcher.lock() {
+                        *watcher = Some(w);
+                    }
                 }
             });
 

@@ -3,7 +3,7 @@ use tokio::process::Command as AsyncCommand;
 
 pub fn cache_dir() -> PathBuf {
     dirs::home_dir()
-        .expect("Could not find home directory")
+        .unwrap_or_else(|| PathBuf::from("/tmp"))
         .join(".terrarium")
 }
 
@@ -49,7 +49,19 @@ fn find_latest_node_in(versions_dir: &Path) -> Option<PathBuf> {
         .map(|e| e.path())
         .filter(|p| p.join("bin/node").exists())
         .collect();
-    versions.sort();
+    // Sort by version number, not lexicographically (so v18 > v9)
+    versions.sort_by(|a, b| {
+        let parse = |p: &Path| -> Vec<u64> {
+            p.file_name()
+                .unwrap_or_default()
+                .to_string_lossy()
+                .trim_start_matches('v')
+                .split('.')
+                .filter_map(|s| s.parse().ok())
+                .collect()
+        };
+        parse(a).cmp(&parse(b))
+    });
     versions.last().map(|p| p.join("bin/node"))
 }
 
@@ -70,7 +82,7 @@ fn find_node_via_shell() -> Option<PathBuf> {
     None
 }
 
-pub fn bundler_script_path(app_handle: &tauri::AppHandle) -> PathBuf {
+pub fn bundler_script_path(app_handle: &tauri::AppHandle) -> Result<PathBuf, String> {
     use tauri::Manager;
     app_handle
         .path()
@@ -78,7 +90,7 @@ pub fn bundler_script_path(app_handle: &tauri::AppHandle) -> PathBuf {
             "resources/bundler.mjs",
             tauri::path::BaseDirectory::Resource,
         )
-        .expect("Failed to resolve bundler.mjs resource path")
+        .map_err(|e| format!("Failed to locate bundler: {e}"))
 }
 
 pub fn needs_install() -> bool {
@@ -93,7 +105,7 @@ pub async fn bundle_tsx(app_handle: &tauri::AppHandle, tsx_path: &Path) -> Resul
         let _ = app_handle.emit("install-started", ());
     }
 
-    let bundler = bundler_script_path(app_handle);
+    let bundler = bundler_script_path(app_handle)?;
     let node = find_node()?;
 
     // Add node's directory to PATH so bundler.mjs can find npm
@@ -103,13 +115,17 @@ pub async fn bundle_tsx(app_handle: &tauri::AppHandle, tsx_path: &Path) -> Resul
         Err(_) => format!("{}:/usr/bin:/bin", node_dir.display()),
     };
 
-    let output = AsyncCommand::new(&node)
-        .arg(&bundler)
-        .arg(tsx_path)
-        .env("PATH", &path_env)
-        .output()
-        .await
-        .map_err(|e| format!("Failed to run bundler: {e}"))?;
+    let output = tokio::time::timeout(
+        std::time::Duration::from_secs(120),
+        AsyncCommand::new(&node)
+            .arg(&bundler)
+            .arg(tsx_path)
+            .env("PATH", &path_env)
+            .output(),
+    )
+    .await
+    .map_err(|_| "Bundler timed out after 120 seconds".to_string())?
+    .map_err(|e| format!("Failed to run bundler: {e}"))?;
 
     if installing {
         let _ = app_handle.emit("install-finished", ());

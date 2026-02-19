@@ -20,8 +20,10 @@ pub fn watch_file(
     )
     .map_err(|e| format!("Failed to create watcher: {e}"))?;
 
+    // Watch the parent directory to catch renames (Vim-style save: write temp → delete → rename)
+    let watch_dir = path.parent().unwrap_or(&path);
     watcher
-        .watch(&path, RecursiveMode::NonRecursive)
+        .watch(watch_dir, RecursiveMode::NonRecursive)
         .map_err(|e| format!("Failed to watch file: {e}"))?;
 
     let watched_path = path.clone();
@@ -30,6 +32,11 @@ pub fn watch_file(
         let mut last_rebuild = Instant::now();
 
         for event in rx {
+            let affects_our_file = event.paths.iter().any(|p| p == &watched_path);
+            if !affects_our_file {
+                continue;
+            }
+
             match event.kind {
                 EventKind::Modify(_) | EventKind::Create(_) => {
                     if !should_rebuild(last_rebuild, 300) {
