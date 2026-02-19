@@ -63,9 +63,11 @@
       ]
     },
     "updater": {
+      "active": false,
       "endpoints": [
         "https://github.com/OWNER/tsx-viewer/releases/latest/download/latest.json"
-      ]
+      ],
+      "pubkey": ""
     }
   }
 }
