@@ -65,11 +65,10 @@
       ]
     },
     "updater": {
-      "active": false,
       "endpoints": [
         "https://github.com/michellemayes/terrarium/releases/latest/download/latest.json"
       ],
-      "pubkey": ""
+      "pubkey": "dW50cnVzdGVkIGNvbW1lbnQ6IG1pbmlzaWduIHB1YmxpYyBrZXk6IEFDMDIyQzI2QTU1MDEwRkEKUldUNkVGQ2xKaXdDclB1cmM4STE1eW8rNEIyUDJCRlVRUnJRM2s2ak96MHVhOGRBODB3U3FDL3YK"
     }
   }
 }

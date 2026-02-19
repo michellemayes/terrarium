@@ -3,7 +3,8 @@ mod watcher;
 
 use std::path::PathBuf;
 use std::sync::Mutex;
-use tauri::{Manager, State, Emitter};
+use tauri::menu::{MenuBuilder, SubmenuBuilder};
+use tauri::{Emitter, Manager, State};
 
 pub struct AppState {
     pub current_file: Mutex<Option<PathBuf>>,
@@ -11,7 +12,11 @@ pub struct AppState {
 }
 
 #[tauri::command]
-async fn open_file(app: tauri::AppHandle, state: State<'_, AppState>, path: String) -> Result<String, String> {
+async fn open_file(
+    app: tauri::AppHandle,
+    state: State<'_, AppState>,
+    path: String,
+) -> Result<String, String> {
     let tsx_path = PathBuf::from(&path);
     if !tsx_path.exists() {
         return Err(format!("File not found: {path}"));
@@ -20,7 +25,9 @@ async fn open_file(app: tauri::AppHandle, state: State<'_, AppState>, path: Stri
         return Err(format!("Not a TSX file: {path}"));
     }
 
-    *state.current_file.lock()
+    *state
+        .current_file
+        .lock()
         .map_err(|_| "Internal state error".to_string())? = Some(tsx_path.clone());
 
     if let Some(window) = app.get_webview_window("main") {
@@ -31,16 +38,24 @@ async fn open_file(app: tauri::AppHandle, state: State<'_, AppState>, path: Stri
     let bundle_result = bundler::bundle_tsx(&app, &tsx_path).await;
 
     if let Ok(w) = watcher::watch_file(app.clone(), tsx_path) {
-        *state.watcher.lock().map_err(|_| "Internal state error".to_string())? = Some(w);
+        *state
+            .watcher
+            .lock()
+            .map_err(|_| "Internal state error".to_string())? = Some(w);
     }
 
     bundle_result
 }
 
 #[tauri::command]
-async fn pick_and_open_file(app: tauri::AppHandle, state: State<'_, AppState>) -> Result<String, String> {
+async fn pick_and_open_file(
+    app: tauri::AppHandle,
+    state: State<'_, AppState>,
+) -> Result<String, String> {
     use tauri_plugin_dialog::DialogExt;
-    let picked = app.dialog().file()
+    let picked = app
+        .dialog()
+        .file()
         .add_filter("TSX Files", &["tsx"])
         .blocking_pick_file()
         .ok_or_else(|| "No file selected".to_string())?;
@@ -50,14 +65,18 @@ async fn pick_and_open_file(app: tauri::AppHandle, state: State<'_, AppState>) -
 }
 
 #[tauri::command]
-async fn request_bundle(app: tauri::AppHandle, state: State<'_, AppState>) -> Result<String, String> {
-    let path = state.current_file.lock()
+async fn request_bundle(
+    app: tauri::AppHandle,
+    state: State<'_, AppState>,
+) -> Result<String, String> {
+    let path = state
+        .current_file
+        .lock()
         .map_err(|_| "Internal state error".to_string())?
         .clone()
         .ok_or_else(|| "No file loaded".to_string())?;
     bundler::bundle_tsx(&app, &path).await
 }
-
 
 pub fn run() {
     tauri::Builder::default()
@@ -70,7 +89,53 @@ pub fn run() {
             current_file: Mutex::new(None),
             watcher: Mutex::new(None),
         })
-        .invoke_handler(tauri::generate_handler![open_file, pick_and_open_file, request_bundle])
+        .invoke_handler(tauri::generate_handler![
+            open_file,
+            pick_and_open_file,
+            request_bundle
+        ])
+        .menu(|handle| {
+            let open_item = tauri::menu::MenuItemBuilder::with_id("open-file", "Open...")
+                .accelerator("CmdOrCtrl+O")
+                .build(handle)?;
+            let file_menu = SubmenuBuilder::new(handle, "File")
+                .item(&open_item)
+                .separator()
+                .close_window()
+                .build()?;
+            let edit_menu = SubmenuBuilder::new(handle, "Edit")
+                .undo()
+                .redo()
+                .separator()
+                .cut()
+                .copy()
+                .paste()
+                .select_all()
+                .build()?;
+            let window_menu = SubmenuBuilder::new(handle, "Window").minimize().build()?;
+            let app_menu = SubmenuBuilder::new(handle, "Terrarium")
+                .about(None)
+                .separator()
+                .services()
+                .separator()
+                .hide()
+                .hide_others()
+                .show_all()
+                .separator()
+                .quit()
+                .build()?;
+            MenuBuilder::new(handle)
+                .item(&app_menu)
+                .item(&file_menu)
+                .item(&edit_menu)
+                .item(&window_menu)
+                .build()
+        })
+        .on_menu_event(|app, event| {
+            if event.id().as_ref() == "open-file" {
+                let _ = app.emit("menu-open-file", ());
+            }
+        })
         .setup(|app| {
             let app_handle = app.handle().clone();
 
@@ -79,13 +144,16 @@ pub fn run() {
             // (tauri dev passes extra flags like --no-default-features that the CLI plugin rejects)
             {
                 use tauri_plugin_cli::CliExt;
-                let found_file = app.cli().matches().ok()
+                let found_file = app
+                    .cli()
+                    .matches()
+                    .ok()
                     .and_then(|m| m.args.get("file").cloned())
                     .and_then(|a| a.value.as_str().map(String::from))
                     .filter(|p| !p.is_empty())
                     .map(|path| {
-                        let resolved = std::fs::canonicalize(&path)
-                            .unwrap_or_else(|_| PathBuf::from(&path));
+                        let resolved =
+                            std::fs::canonicalize(&path).unwrap_or_else(|_| PathBuf::from(&path));
                         *app.state::<AppState>().current_file.lock().unwrap() = Some(resolved);
                     })
                     .is_some();
@@ -97,12 +165,14 @@ pub fn run() {
                         if arg.ends_with(".tsx") {
                             let path = PathBuf::from(&arg);
                             if let Ok(resolved) = std::fs::canonicalize(&path) {
-                                *app.state::<AppState>().current_file.lock().unwrap() = Some(resolved);
+                                *app.state::<AppState>().current_file.lock().unwrap() =
+                                    Some(resolved);
                                 break;
                             }
                             let from_parent = PathBuf::from("..").join(&path);
                             if let Ok(resolved) = std::fs::canonicalize(&from_parent) {
-                                *app.state::<AppState>().current_file.lock().unwrap() = Some(resolved);
+                                *app.state::<AppState>().current_file.lock().unwrap() =
+                                    Some(resolved);
                                 break;
                             }
                         }
@@ -110,7 +180,24 @@ pub fn run() {
                 }
             }
 
-            if app.state::<AppState>().current_file.lock().unwrap().is_none() {
+            // Check for updates in the background (silently skips if pubkey not configured)
+            let update_handle = app_handle.clone();
+            tauri::async_runtime::spawn(async move {
+                use tauri_plugin_updater::UpdaterExt;
+                if let Ok(updater) = update_handle.updater() {
+                    if let Ok(Some(update)) = updater.check().await {
+                        let _ = update_handle.emit("update-available", &update.version);
+                    }
+                }
+            });
+
+            if app
+                .state::<AppState>()
+                .current_file
+                .lock()
+                .unwrap()
+                .is_none()
+            {
                 let _ = app_handle.emit("no-file", ());
                 return Ok(());
             }
@@ -126,8 +213,12 @@ pub fn run() {
                 }
 
                 match bundler::bundle_tsx(&handle, &path).await {
-                    Ok(bundle) => { let _ = handle.emit("bundle-ready", bundle); }
-                    Err(err) => { let _ = handle.emit("bundle-error", err); }
+                    Ok(bundle) => {
+                        let _ = handle.emit("bundle-ready", bundle);
+                    }
+                    Err(err) => {
+                        let _ = handle.emit("bundle-error", err);
+                    }
                 }
 
                 if let Ok(w) = watcher::watch_file(handle.clone(), path) {

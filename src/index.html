@@ -58,37 +58,56 @@
       font-size: 12px;
       color: #6b5a8a;
     }
+    #install-banner {
+      display: none;
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      background: linear-gradient(135deg, #2d1854, #1e1035);
+      color: #c4b5fd;
+      font-size: 13px;
+      padding: 10px 20px;
+      text-align: center;
+      z-index: 9999;
+      border-bottom: 1px solid #7c3aed;
+    }
+    #install-banner.visible { display: block; }
+    @keyframes spin { to { transform: rotate(360deg); } }
+    .spinner {
+      display: inline-block;
+      width: 14px;
+      height: 14px;
+      border: 2px solid #7c3aed;
+      border-top-color: #c4b5fd;
+      border-radius: 50%;
+      animation: spin 0.8s linear infinite;
+      vertical-align: middle;
+      margin-right: 8px;
+    }
     #drop-overlay {
       display: none;
       position: fixed;
       inset: 0;
-      background: rgba(124, 58, 237, 0.15);
+      background: rgba(30, 16, 53, 0.92);
+      backdrop-filter: blur(20px);
+      -webkit-backdrop-filter: blur(20px);
       border: 3px dashed #a78bfa;
       z-index: 9998;
       align-items: center;
       justify-content: center;
-      font-size: 18px;
-      font-weight: 500;
-      color: #c4b5fd;
+      flex-direction: column;
+      gap: 8px;
+      font-size: 20px;
+      font-weight: 600;
+      color: #e9d5ff;
+    }
+    #drop-overlay .drop-sub {
+      font-size: 13px;
+      font-weight: 400;
+      color: #8b7aab;
     }
     #drop-overlay.visible { display: flex; }
-    #open-another {
-      position: fixed;
-      top: 12px;
-      right: 12px;
-      background: rgba(124, 58, 237, 0.85);
-      color: #fff;
-      border: none;
-      padding: 6px 14px;
-      border-radius: 7px;
-      font-size: 12px;
-      font-weight: 500;
-      cursor: pointer;
-      z-index: 9997;
-      display: none;
-      transition: opacity 0.15s;
-    }
-    #open-another:hover { background: rgba(124, 58, 237, 1); }
     #error-banner {
       position: fixed;
       bottom: 0;
@@ -192,8 +211,11 @@
       <span id="drop-hint">or drag and drop a .tsx file onto the app</span>
     </div>
   </div>
-  <div id="drop-overlay">Drop .tsx file here</div>
-  <button id="open-another">Open File</button>
+  <div id="install-banner"><span class="spinner"></span>Installing dependencies for the first time...</div>
+  <div id="drop-overlay">
+    <span>Drop .tsx file here</span>
+    <span class="drop-sub">Release to open and render</span>
+  </div>
   <div id="error-banner">
     <div id="error-header" onclick="toggleError()">
       <span id="error-title">Build Error</span>

@@ -16,6 +16,9 @@ src-tauri/target/
 .DS_Store
 Thumbs.db
 
+# Internal docs
+docs/plans/
+
 # Environment
 .env
 .env.*

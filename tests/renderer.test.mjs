@@ -1,128 +1,151 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { JSDOM } from 'jsdom';
+import * as fs from 'fs';
+import * as path from 'path';
+
+const RENDERER_SRC = fs.readFileSync(path.resolve('src/renderer.js'), 'utf-8');
+const INDEX_HTML = fs.readFileSync(path.resolve('src/index.html'), 'utf-8');
 
 function createRendererEnv() {
-  const dom = new JSDOM(`
-    <!DOCTYPE html>
-    <html>
-    <body>
-      <div id="root"></div>
-      <div id="error-banner">
-        <div id="error-header">
-          <span id="error-title"></span>
-          <button id="error-toggle"></button>
-        </div>
-        <pre id="error-detail"></pre>
-      </div>
-    </body>
-    </html>
-  `, { url: 'http://localhost' });
+  const dom = new JSDOM(INDEX_HTML, {
+    url: 'http://localhost',
+    runScripts: 'dangerously',
+    resources: 'usable',
+  });
 
-  const document = dom.window.document;
+  const listeners = {};
 
-  function showError(message) {
-    const banner = document.getElementById('error-banner');
-    const title = document.getElementById('error-title');
-    const detail = document.getElementById('error-detail');
-    const root = document.getElementById('root');
+  // Mock Tauri APIs
+  dom.window.__TAURI__ = {
+    event: {
+      listen: vi.fn((event, handler) => {
+        listeners[event] = listeners[event] || [];
+        listeners[event].push(handler);
+        return Promise.resolve(() => {});
+      }),
+    },
+    core: {
+      invoke: vi.fn(() => Promise.reject('No file loaded')),
+    },
+  };
 
-    banner.classList.remove('hidden');
-    banner.classList.add('visible');
-    title.textContent = 'Build Error';
-    detail.textContent = message;
-    root.style.opacity = '0.4';
+  // Execute renderer.js in the JSDOM context
+  dom.window.eval(RENDERER_SRC);
+
+  function emit(event, payload) {
+    const handlers = listeners[event] || [];
+    handlers.forEach(h => h({ payload }));
   }
 
-  function hideError() {
-    const banner = document.getElementById('error-banner');
-    const root = document.getElementById('root');
-
-    banner.classList.add('hidden');
-    banner.classList.remove('visible');
-    root.style.opacity = '1';
-  }
-
-  function isErrorVisible() {
-    const banner = document.getElementById('error-banner');
-    return banner.classList.contains('visible');
-  }
-
-  function toggleErrorDetail() {
-    const detail = document.getElementById('error-detail');
-    if (detail.style.display === 'none') {
-      detail.style.display = 'block';
-    } else {
-      detail.style.display = 'none';
-    }
-  }
-
-  return { dom, document, showError, hideError, isErrorVisible, toggleErrorDetail };
+  return { dom, document: dom.window.document, listeners, emit, window: dom.window };
 }
 
 describe('renderer', () => {
-  describe('showError', () => {
-    it('makes error banner visible', () => {
-      const { showError, isErrorVisible } = createRendererEnv();
-      showError('test error');
-      expect(isErrorVisible()).toBe(true);
+  describe('showError / hideError', () => {
+    it('shows error banner with message', () => {
+      const { document, emit } = createRendererEnv();
+      emit('bundle-error', 'Something went wrong');
+      const banner = document.getElementById('error-banner');
+      const detail = document.getElementById('error-detail');
+      expect(banner.classList.contains('visible')).toBe(true);
+      expect(detail.textContent).toBe('Something went wrong');
     });
 
-    it('sets error message text', () => {
-      const { document, showError } = createRendererEnv();
-      showError('Could not resolve "bad-pkg"');
-      expect(document.getElementById('error-detail').textContent).toBe('Could not resolve "bad-pkg"');
-    });
-
-    it('sets error title to Build Error', () => {
-      const { document, showError } = createRendererEnv();
-      showError('some error');
-      expect(document.getElementById('error-title').textContent).toBe('Build Error');
-    });
-
-    it('dims the root element', () => {
-      const { document, showError } = createRendererEnv();
-      showError('error');
+    it('dims root when error is shown', () => {
+      const { document, emit } = createRendererEnv();
+      emit('bundle-error', 'error');
       expect(document.getElementById('root').style.opacity).toBe('0.4');
     });
-  });
 
-  describe('hideError', () => {
-    it('hides the error banner', () => {
-      const { showError, hideError, isErrorVisible } = createRendererEnv();
-      showError('error');
-      expect(isErrorVisible()).toBe(true);
-      hideError();
-      expect(isErrorVisible()).toBe(false);
-    });
-
-    it('restores root opacity', () => {
-      const { document, showError, hideError } = createRendererEnv();
-      showError('error');
-      hideError();
+    it('hides error and restores opacity on successful bundle', () => {
+      const { document, emit } = createRendererEnv();
+      emit('bundle-error', 'error');
+      expect(document.getElementById('error-banner').classList.contains('visible')).toBe(true);
+      // A successful bundle clears the error
+      emit('bundle-ready', 'void 0;');
+      expect(document.getElementById('error-banner').classList.contains('visible')).toBe(false);
       expect(document.getElementById('root').style.opacity).toBe('1');
     });
   });
 
-  describe('toggleErrorDetail', () => {
-    it('toggles detail visibility', () => {
-      const { document, showError, toggleErrorDetail } = createRendererEnv();
-      showError('error');
+  describe('toggleError', () => {
+    it('toggles error detail visibility', () => {
+      const { document, emit, window } = createRendererEnv();
+      emit('bundle-error', 'error');
       const detail = document.getElementById('error-detail');
-      expect(detail.style.display).not.toBe('none');
-      toggleErrorDetail();
+      expect(detail.style.display).toBe('block');
+      window.toggleError();
       expect(detail.style.display).toBe('none');
-      toggleErrorDetail();
+      window.toggleError();
       expect(detail.style.display).toBe('block');
     });
   });
 
-  describe('error auto-dismiss', () => {
-    it('hideError is called when a new successful bundle arrives', () => {
-      const { showError, hideError, isErrorVisible } = createRendererEnv();
-      showError('build failed');
-      expect(isErrorVisible()).toBe(true);
-      hideError();
-      expect(isErrorVisible()).toBe(false);
+  describe('bundle rendering', () => {
+    it('executes bundled code on bundle-ready', () => {
+      const { document, emit } = createRendererEnv();
+      emit('bundle-ready', 'document.getElementById("root").innerHTML = "<p>hello</p>";');
+      expect(document.getElementById('root').innerHTML).toBe('<p>hello</p>');
+    });
+
+    it('shows render error if bundled code throws', () => {
+      const { document, emit } = createRendererEnv();
+      emit('bundle-ready', 'throw new Error("boom");');
+      const banner = document.getElementById('error-banner');
+      expect(banner.classList.contains('visible')).toBe(true);
+      expect(document.getElementById('error-detail').textContent).toContain('boom');
+    });
+  });
+
+  describe('event listeners', () => {
+    it('registers all expected Tauri event listeners', () => {
+      const { listeners } = createRendererEnv();
+      const expected = ['bundle-ready', 'bundle-error', 'no-file', 'menu-open-file',
+        'tauri://drag-drop', 'tauri://drag-enter', 'tauri://drag-leave',
+        'install-started', 'install-finished'];
+      for (const event of expected) {
+        expect(listeners[event], `missing listener for ${event}`).toBeDefined();
+      }
+    });
+  });
+
+  describe('install banner', () => {
+    it('shows install banner on install-started', () => {
+      const { document, emit } = createRendererEnv();
+      emit('install-started');
+      expect(document.getElementById('install-banner').classList.contains('visible')).toBe(true);
+    });
+
+    it('hides install banner on install-finished', () => {
+      const { document, emit } = createRendererEnv();
+      emit('install-started');
+      emit('install-finished');
+      expect(document.getElementById('install-banner').classList.contains('visible')).toBe(false);
+    });
+  });
+
+  describe('drag and drop', () => {
+    it('shows drop overlay on drag-enter', () => {
+      const { document, emit } = createRendererEnv();
+      emit('tauri://drag-enter');
+      expect(document.getElementById('drop-overlay').classList.contains('visible')).toBe(true);
+    });
+
+    it('hides drop overlay on drag-leave', () => {
+      const { document, emit } = createRendererEnv();
+      emit('tauri://drag-enter');
+      emit('tauri://drag-leave');
+      expect(document.getElementById('drop-overlay').classList.contains('visible')).toBe(false);
+    });
+  });
+
+  describe('open button', () => {
+    it('calls pick_and_open_file on button click', () => {
+      const { document, window } = createRendererEnv();
+      const btn = document.getElementById('open-btn');
+      expect(btn).toBeTruthy();
+      btn.click();
+      expect(window.__TAURI__.core.invoke).toHaveBeenCalledWith('pick_and_open_file');
     });
   });
 });

@@ -11,11 +11,25 @@ pub fn bundler_script_path(app_handle: &tauri::AppHandle) -> PathBuf {
     use tauri::Manager;
     app_handle
         .path()
-        .resolve("resources/bundler.mjs", tauri::path::BaseDirectory::Resource)
+        .resolve(
+            "resources/bundler.mjs",
+            tauri::path::BaseDirectory::Resource,
+        )
         .expect("Failed to resolve bundler.mjs resource path")
 }
 
+pub fn needs_install() -> bool {
+    !cache_dir().join("node_modules").join("react").exists()
+}
+
 pub async fn bundle_tsx(app_handle: &tauri::AppHandle, tsx_path: &Path) -> Result<String, String> {
+    use tauri::Emitter;
+
+    let installing = needs_install();
+    if installing {
+        let _ = app_handle.emit("install-started", ());
+    }
+
     let bundler = bundler_script_path(app_handle);
 
     let output = AsyncCommand::new("node")
@@ -24,6 +38,10 @@ pub async fn bundle_tsx(app_handle: &tauri::AppHandle, tsx_path: &Path) -> Resul
         .output()
         .await
         .map_err(|e| format!("Failed to run bundler: {e}"))?;
+
+    if installing {
+        let _ = app_handle.emit("install-finished", ());
+    }
 
     if output.status.success() {
         let stdout = String::from_utf8_lossy(&output.stdout).to_string();

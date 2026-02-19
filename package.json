@@ -12,7 +12,8 @@
   "devDependencies": {
     "@tauri-apps/cli": "^2",
     "vitest": "^3.0.0",
-    "jsdom": "^25.0.0"
+    "jsdom": "^25.0.0",
+    "@vitest/coverage-v8": "^3.0.0"
   },
   "dependencies": {
     "@tauri-apps/api": "^2"

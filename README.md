@@ -7,7 +7,7 @@
 <p align="center">
   <strong>A tiny terrarium to view your TSX components</strong>
   <br />
-  A contained environment where they can live and grow.
+  A contained Tauri viewing environment where they can live and grow.
 </p>
 
 <p align="center">
@@ -27,7 +27,7 @@ Drop any `.tsx` file into Terrarium and it renders instantly as a standalone app
 
 **Claude.ai &rarr; your file system &rarr; Terrarium**
 
-1. **Generate** &mdash; Ask Claude to build something as an Artifact. A dashboard, a form, a game, a chart &mdash; anything that renders as a React component.
+1. **Generate** &mdash; Use Claude Desktop to build something as an Artifact. A dashboard, a form, a game, a chart &mdash; anything that renders as a React component.
 
 2. **Export** &mdash; Click the download button on the Artifact to save it as a `.tsx` file, or copy the code into a new file.
 

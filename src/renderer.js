@@ -6,10 +6,9 @@ const errorBanner = document.getElementById('error-banner');
 const errorDetail = document.getElementById('error-detail');
 const errorToggle = document.getElementById('error-toggle');
 const dropOverlay = document.getElementById('drop-overlay');
-const openAnother = document.getElementById('open-another');
+const installBanner = document.getElementById('install-banner');
 
 let detailExpanded = true;
-let hasRendered = false;
 
 function showError(message) {
   errorDetail.textContent = message;
@@ -36,8 +35,6 @@ async function renderBundle(bundledCode) {
     hideError();
     root.innerHTML = '';
     new Function(bundledCode)();
-    hasRendered = true;
-    openAnother.style.display = 'block';
   } catch (err) {
     showError(`Render error:\n${err.message}\n\n${err.stack || ''}`);
   }
@@ -63,7 +60,6 @@ const openBtn = document.getElementById('open-btn');
 if (openBtn) {
   openBtn.addEventListener('click', openFilePicker);
 }
-openAnother.addEventListener('click', openFilePicker);
 
 listen('bundle-ready', (event) => {
   renderBundle(event.payload);
@@ -75,7 +71,18 @@ listen('bundle-error', (event) => {
 
 listen('no-file', () => {});
 
-// Drag-and-drop support
+listen('install-started', () => {
+  installBanner.classList.add('visible');
+});
+
+listen('install-finished', () => {
+  installBanner.classList.remove('visible');
+});
+
+listen('menu-open-file', () => {
+  openFilePicker();
+});
+
 listen('tauri://drag-drop', (event) => {
   dropOverlay.classList.remove('visible');
   const paths = event.payload.paths;

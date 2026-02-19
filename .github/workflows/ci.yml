@@ -7,6 +7,27 @@ on:
     branches: [master]
 
 jobs:
+  check-rust:
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          components: rustfmt, clippy
+      - uses: swatinem/rust-cache@v2
+        with:
+          workspaces: "./src-tauri -> target"
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - run: npm install
+      - name: Check formatting
+        run: cd src-tauri && cargo fmt --check
+      - name: Clippy
+        run: cd src-tauri && cargo clippy -- -D warnings
+      - name: Run tests
+        run: cd src-tauri && cargo test
+
   test-node:
     runs-on: macos-latest
     steps:
@@ -17,17 +38,3 @@ jobs:
       - run: npm install
       - run: cd src-tauri/resources && npm install
       - run: npm test
-
-  test-rust:
-    runs-on: macos-latest
-    steps:
-      - uses: actions/checkout@v4
-      - uses: dtolnay/rust-toolchain@stable
-      - uses: swatinem/rust-cache@v2
-        with:
-          workspaces: "./src-tauri -> target"
-      - uses: actions/setup-node@v4
-        with:
-          node-version: 20
-      - run: npm install
-      - run: cd src-tauri && cargo test
