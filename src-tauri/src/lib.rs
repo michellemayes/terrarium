@@ -77,8 +77,11 @@ pub fn run() {
             let app_handle = app.handle().clone();
 
             // Handle CLI arguments
+            // Try the CLI plugin first, fall back to std::env::args for dev mode
+            // (tauri dev passes extra flags like --no-default-features that the CLI plugin rejects)
             {
                 use tauri_plugin_cli::CliExt;
+                let mut found_file = false;
                 if let Ok(matches) = app.cli().matches() {
                     if let Some(file_arg) = matches.args.get("file") {
                         if let Some(path) = file_arg.value.as_str() {
@@ -86,6 +89,21 @@ pub fn run() {
                                 let resolved = std::fs::canonicalize(path)
                                     .unwrap_or_else(|_| PathBuf::from(path));
                                 *app.state::<AppState>().current_file.lock().unwrap() = Some(resolved);
+                                found_file = true;
+                            }
+                        }
+                    }
+                }
+
+                // Fallback: check raw args for a .tsx file path
+                if !found_file {
+                    for arg in std::env::args().skip(1) {
+                        if arg.ends_with(".tsx") {
+                            let resolved = std::fs::canonicalize(&arg)
+                                .unwrap_or_else(|_| PathBuf::from(&arg));
+                            if resolved.exists() {
+                                *app.state::<AppState>().current_file.lock().unwrap() = Some(resolved);
+                                break;
                             }
                         }
                     }
@@ -94,24 +112,38 @@ pub fn run() {
 
             let has_file = app.state::<AppState>().current_file.lock().unwrap().is_some();
 
+            eprintln!("[tsx-viewer] has_file: {}", has_file);
+
             if !has_file {
                 let handle = app_handle.clone();
                 tauri::async_runtime::spawn(async move {
                     use tauri_plugin_dialog::DialogExt;
+                    eprintln!("[tsx-viewer] Opening file dialog...");
                     let file = handle.dialog().file()
                         .add_filter("TSX Files", &["tsx"])
                         .blocking_pick_file();
                     if let Some(picked) = file {
                         let path = match picked.into_path() {
                             Ok(p) => p,
-                            Err(_) => return,
+                            Err(e) => {
+                                eprintln!("[tsx-viewer] Failed to get path from dialog: {:?}", e);
+                                return;
+                            }
                         };
+                        eprintln!("[tsx-viewer] Dialog picked: {:?}", path);
                         let state = handle.state::<AppState>();
                         *state.current_file.lock().unwrap() = Some(path.clone());
 
+                        eprintln!("[tsx-viewer] Bundling {:?}...", path);
                         match bundler::bundle_tsx(&handle, &path).await {
-                            Ok(bundle) => { let _ = handle.emit("bundle-ready", bundle); }
-                            Err(err) => { let _ = handle.emit("bundle-error", err); }
+                            Ok(bundle) => {
+                                eprintln!("[tsx-viewer] Bundle success ({} bytes)", bundle.len());
+                                let _ = handle.emit("bundle-ready", bundle);
+                            }
+                            Err(err) => {
+                                eprintln!("[tsx-viewer] Bundle error: {}", err);
+                                let _ = handle.emit("bundle-error", err);
+                            }
                         }
 
                         if let Ok(w) = watcher::watch_file(handle.clone(), path) {
@@ -124,15 +156,23 @@ pub fn run() {
                 tauri::async_runtime::spawn(async move {
                     let state = handle.state::<AppState>();
                     let path = state.current_file.lock().unwrap().clone().unwrap();
+                    eprintln!("[tsx-viewer] CLI file: {:?}", path);
 
                     if let Some(window) = handle.get_webview_window("main") {
                         let name = path.file_name().unwrap_or_default().to_string_lossy();
                         let _ = window.set_title(&format!("{name} — TSX Viewer"));
                     }
 
+                    eprintln!("[tsx-viewer] Bundling {:?}...", path);
                     match bundler::bundle_tsx(&handle, &path).await {
-                        Ok(bundle) => { let _ = handle.emit("bundle-ready", bundle); }
-                        Err(err) => { let _ = handle.emit("bundle-error", err); }
+                        Ok(bundle) => {
+                            eprintln!("[tsx-viewer] Bundle success ({} bytes)", bundle.len());
+                            let _ = handle.emit("bundle-ready", bundle);
+                        }
+                        Err(err) => {
+                            eprintln!("[tsx-viewer] Bundle error: {}", err);
+                            let _ = handle.emit("bundle-error", err);
+                        }
                     }
 
                     if let Ok(w) = watcher::watch_file(handle.clone(), path) {

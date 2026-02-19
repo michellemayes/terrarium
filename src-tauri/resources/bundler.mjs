@@ -118,7 +118,7 @@ export async function bundle(inputFile) {
       loader: 'tsx',
     },
     bundle: true,
-    format: 'esm',
+    format: 'iife',
     platform: 'browser',
     jsx: 'automatic',
     jsxImportSource: 'react',

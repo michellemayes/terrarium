@@ -31,17 +31,10 @@ window.toggleError = function() {
 async function renderBundle(bundledCode) {
   try {
     hideError();
-    const prev = document.getElementById('tsx-bundle');
-    if (prev) prev.remove();
     root.innerHTML = '';
-    const blob = new Blob([bundledCode], { type: 'text/javascript' });
-    const url = URL.createObjectURL(blob);
-    const script = document.createElement('script');
-    script.id = 'tsx-bundle';
-    script.type = 'module';
-    script.src = url;
-    script.onerror = () => showError('Failed to execute bundle');
-    document.body.appendChild(script);
+    // Execute the IIFE bundle directly — blob URL module scripts
+    // don't work in Tauri's WebKit webview due to null origin
+    new Function(bundledCode)();
   } catch (err) {
     showError(`Render error:\n${err.message}\n\n${err.stack || ''}`);
   }
