@@ -30,8 +30,8 @@
 
     <!-- Code bracket glow -->
     <filter id="codeGlow" x="-40%" y="-40%" width="180%" height="180%">
-      <feGaussianBlur in="SourceGraphic" stdDeviation="6" result="blur1"/>
-      <feGaussianBlur in="SourceGraphic" stdDeviation="2" result="blur2"/>
+      <feGaussianBlur in="SourceGraphic" stdDeviation="8" result="blur1"/>
+      <feGaussianBlur in="SourceGraphic" stdDeviation="3" result="blur2"/>
       <feMerge>
         <feMergeNode in="blur1"/>
         <feMergeNode in="blur2"/>
@@ -51,54 +51,54 @@
   <circle cx="300" cy="140" r="2" fill="#ffffff" opacity="0.5"/>
   <circle cx="750" cy="880" r="2" fill="#ffffff" opacity="0.4"/>
 
-  <!-- Flower petals around center - 5 petals, bigger -->
+  <!-- Flower petals around center - 5 petals -->
   <g filter="url(#glow)" opacity="0.85">
-    <ellipse cx="512" cy="300" rx="90" ry="155" fill="url(#petalGrad)" transform="rotate(0, 512, 512)"/>
-    <ellipse cx="512" cy="300" rx="90" ry="155" fill="url(#petalGrad)" transform="rotate(72, 512, 512)"/>
-    <ellipse cx="512" cy="300" rx="90" ry="155" fill="url(#petalGrad)" transform="rotate(144, 512, 512)"/>
-    <ellipse cx="512" cy="300" rx="90" ry="155" fill="url(#petalGrad)" transform="rotate(216, 512, 512)"/>
-    <ellipse cx="512" cy="300" rx="90" ry="155" fill="url(#petalGrad)" transform="rotate(288, 512, 512)"/>
+    <ellipse cx="512" cy="240" rx="95" ry="175" fill="url(#petalGrad)" transform="rotate(0, 512, 512)"/>
+    <ellipse cx="512" cy="240" rx="95" ry="175" fill="url(#petalGrad)" transform="rotate(72, 512, 512)"/>
+    <ellipse cx="512" cy="240" rx="95" ry="175" fill="url(#petalGrad)" transform="rotate(144, 512, 512)"/>
+    <ellipse cx="512" cy="240" rx="95" ry="175" fill="url(#petalGrad)" transform="rotate(216, 512, 512)"/>
+    <ellipse cx="512" cy="240" rx="95" ry="175" fill="url(#petalGrad)" transform="rotate(288, 512, 512)"/>
   </g>
 
   <!-- Inner petal highlights -->
   <g opacity="0.5">
-    <ellipse cx="512" cy="330" rx="50" ry="100" fill="url(#petalInner)" transform="rotate(0, 512, 512)"/>
-    <ellipse cx="512" cy="330" rx="50" ry="100" fill="url(#petalInner)" transform="rotate(72, 512, 512)"/>
-    <ellipse cx="512" cy="330" rx="50" ry="100" fill="url(#petalInner)" transform="rotate(144, 512, 512)"/>
-    <ellipse cx="512" cy="330" rx="50" ry="100" fill="url(#petalInner)" transform="rotate(216, 512, 512)"/>
-    <ellipse cx="512" cy="330" rx="50" ry="100" fill="url(#petalInner)" transform="rotate(288, 512, 512)"/>
+    <ellipse cx="512" cy="290" rx="55" ry="110" fill="url(#petalInner)" transform="rotate(0, 512, 512)"/>
+    <ellipse cx="512" cy="290" rx="55" ry="110" fill="url(#petalInner)" transform="rotate(72, 512, 512)"/>
+    <ellipse cx="512" cy="290" rx="55" ry="110" fill="url(#petalInner)" transform="rotate(144, 512, 512)"/>
+    <ellipse cx="512" cy="290" rx="55" ry="110" fill="url(#petalInner)" transform="rotate(216, 512, 512)"/>
+    <ellipse cx="512" cy="290" rx="55" ry="110" fill="url(#petalInner)" transform="rotate(288, 512, 512)"/>
   </g>
 
-  <!-- Flower center circle - bigger -->
-  <circle cx="512" cy="512" r="140" fill="#2d1065" opacity="0.9"/>
-  <circle cx="512" cy="512" r="120" fill="#3b1580"/>
+  <!-- Flower center circle - large -->
+  <circle cx="512" cy="512" r="250" fill="#2d1065" opacity="0.9"/>
+  <circle cx="512" cy="512" r="220" fill="#3b1580"/>
 
-  <!-- Code brackets </> inside the flower center - bigger -->
+  <!-- Code brackets </> inside the flower center - large -->
   <g filter="url(#codeGlow)">
     <!-- Left bracket < -->
     <polyline
-      points="462,460 418,512 462,564"
+      points="420,430 350,512 420,594"
       fill="none"
       stroke="#e8b4f8"
-      stroke-width="18"
+      stroke-width="28"
       stroke-linecap="round"
       stroke-linejoin="round"
     />
     <!-- Right bracket > -->
     <polyline
-      points="562,460 606,512 562,564"
+      points="604,430 674,512 604,594"
       fill="none"
       stroke="#e8b4f8"
-      stroke-width="18"
+      stroke-width="28"
       stroke-linecap="round"
       stroke-linejoin="round"
     />
     <!-- Forward slash / -->
     <line
-      x1="540" y1="448"
-      x2="484" y2="576"
+      x1="568" y1="405"
+      x2="456" y2="619"
       stroke="#f0d0ff"
-      stroke-width="14"
+      stroke-width="22"
       stroke-linecap="round"
     />
   </g>
@@ -106,26 +106,26 @@
   <!-- White highlight on brackets for pop -->
   <g opacity="0.6">
     <polyline
-      points="462,460 418,512 462,564"
+      points="420,430 350,512 420,594"
       fill="none"
       stroke="#ffffff"
-      stroke-width="8"
+      stroke-width="12"
       stroke-linecap="round"
       stroke-linejoin="round"
     />
     <polyline
-      points="562,460 606,512 562,564"
+      points="604,430 674,512 604,594"
       fill="none"
       stroke="#ffffff"
-      stroke-width="8"
+      stroke-width="12"
       stroke-linecap="round"
       stroke-linejoin="round"
     />
     <line
-      x1="540" y1="448"
-      x2="484" y2="576"
+      x1="568" y1="405"
+      x2="456" y2="619"
       stroke="#ffffff"
-      stroke-width="6"
+      stroke-width="8"
       stroke-linecap="round"
     />
   </g>
