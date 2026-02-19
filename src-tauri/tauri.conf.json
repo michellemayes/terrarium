@@ -4,8 +4,7 @@
   "version": "0.1.0",
   "identifier": "com.tsx-viewer.app",
   "build": {
-    "frontendDist": "../src",
-    "devUrl": "../src"
+    "frontendDist": "../src"
   },
   "app": {
     "windows": [
