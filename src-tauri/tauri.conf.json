@@ -5,7 +5,7 @@
   "identifier": "com.tsx-viewer.app",
   "build": {
     "frontendDist": "../src",
-    "devUrl": "http://localhost:1420"
+    "devUrl": "../src"
   },
   "app": {
     "windows": [
