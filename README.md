@@ -13,7 +13,7 @@
 <p align="center">
   <a href="https://github.com/michellemayes/terrarium/releases"><img src="https://img.shields.io/github/v/release/michellemayes/terrarium?style=flat-square&color=7c3aed" alt="Release" /></a>
   <a href="https://github.com/michellemayes/terrarium/actions"><img src="https://img.shields.io/github/actions/workflow/status/michellemayes/terrarium/ci.yml?style=flat-square&label=CI" alt="CI" /></a>
-  <a href="https://github.com/michellemayes/terrarium/blob/master/LICENSE"><img src="https://img.shields.io/github/license/michellemayes/terrarium?style=flat-square&color=a78bfa" alt="License" /></a>
+  <a href="https://github.com/michellemayes/terrarium/blob/main/LICENSE"><img src="https://img.shields.io/github/license/michellemayes/terrarium?style=flat-square&color=a78bfa" alt="License" /></a>
   <img src="https://img.shields.io/badge/platform-macOS-e9d5ff?style=flat-square" alt="macOS" />
 </p>
 
