@@ -567,5 +567,4 @@ mod tests {
         assert_eq!(paths[0], PathBuf::from("/tmp/App.TSX"));
         assert_eq!(paths[1], PathBuf::from("/tmp/Page.Tsx"));
     }
-
 }

@@ -115,13 +115,12 @@ describe('renderer', () => {
 
   describe('showError / hideError', () => {
     it('shows error banner with message', () => {
-      const { document, emit, showWindow } = createRendererEnv();
+      const { document, emit } = createRendererEnv();
       emit('bundle-error', 'Something went wrong');
       const banner = document.getElementById('error-banner');
       const detail = document.getElementById('error-detail');
       expect(banner.classList.contains('visible')).toBe(true);
       expect(detail.textContent).toBe('Something went wrong');
-      expect(showWindow).toHaveBeenCalledTimes(1);
     });
 
     it('dims root when error is shown', () => {
@@ -199,10 +198,9 @@ describe('renderer', () => {
 
   describe('bundle rendering', () => {
     it('executes bundled code on bundle-ready', () => {
-      const { document, emit, showWindow } = createRendererEnv();
+      const { document, emit } = createRendererEnv();
       emit('bundle-ready', 'document.getElementById("root").innerHTML = "<p>hello</p>";');
       expect(document.getElementById('root').innerHTML).toBe('<p>hello</p>');
-      expect(showWindow).toHaveBeenCalledTimes(1);
     });
 
     it('shows render error if bundled code throws', () => {
@@ -213,17 +211,12 @@ describe('renderer', () => {
       expect(document.getElementById('error-detail').textContent).toContain('boom');
     });
 
-    it('shows window when no-file is emitted', () => {
-      const { emit, showWindow } = createRendererEnv();
-      emit('no-file');
-      expect(showWindow).toHaveBeenCalledTimes(1);
-    });
   });
 
   describe('event listeners', () => {
     it('registers all expected Tauri event listeners', () => {
       const { listeners } = createRendererEnv();
-      const expected = ['bundle-ready', 'bundle-error', 'no-file', 'menu-open-file',
+      const expected = ['bundle-ready', 'bundle-error', 'menu-open-file',
         'tauri://drag-drop', 'tauri://drag-enter', 'tauri://drag-leave',
         'install-started', 'install-finished'];
       for (const event of expected) {
@@ -293,14 +286,13 @@ describe('renderer', () => {
   });
 
   describe('request_bundle on load', () => {
-    it('renders and shows window when request_bundle succeeds', async () => {
+    it('renders bundle when request_bundle succeeds', async () => {
       const dom = new JSDOM(INDEX_HTML, {
         url: 'http://localhost',
         runScripts: 'dangerously',
         resources: 'usable',
       });
       const listeners = {};
-      const showWindow = vi.fn(() => Promise.resolve());
       const bundledCode = 'document.getElementById("root").innerHTML = "<p>loaded</p>";';
 
       dom.window.__TAURI__ = {
@@ -316,9 +308,6 @@ describe('renderer', () => {
             if (cmd === 'request_bundle') return Promise.resolve(bundledCode);
             return Promise.reject('No file loaded');
           }),
-        },
-        webviewWindow: {
-          getCurrentWindow: vi.fn(() => ({ show: showWindow })),
         },
       };
 
@@ -327,43 +316,6 @@ describe('renderer', () => {
       await new Promise(r => setTimeout(r, 10));
 
       expect(dom.window.document.getElementById('root').innerHTML).toBe('<p>loaded</p>');
-      expect(showWindow).toHaveBeenCalled();
-    });
-
-    it('uses __TAURI__.window.getCurrentWindow fallback when webviewWindow is absent', async () => {
-      const dom = new JSDOM(INDEX_HTML, {
-        url: 'http://localhost',
-        runScripts: 'dangerously',
-        resources: 'usable',
-      });
-      const listeners = {};
-      const showWindow = vi.fn(() => Promise.resolve());
-      const bundledCode = 'document.getElementById("root").innerHTML = "<p>loaded</p>";';
-
-      dom.window.__TAURI__ = {
-        event: {
-          listen: vi.fn((event, handler) => {
-            listeners[event] = listeners[event] || [];
-            listeners[event].push(handler);
-            return Promise.resolve(() => {});
-          }),
-        },
-        core: {
-          invoke: vi.fn((cmd) => {
-            if (cmd === 'request_bundle') return Promise.resolve(bundledCode);
-            return Promise.reject('No file loaded');
-          }),
-        },
-        window: {
-          getCurrentWindow: vi.fn(() => ({ show: showWindow })),
-        },
-      };
-
-      dom.window.eval(RENDERER_SRC);
-      await new Promise(r => setTimeout(r, 10));
-
-      expect(dom.window.document.getElementById('root').innerHTML).toBe('<p>loaded</p>');
-      expect(showWindow).toHaveBeenCalled();
     });
   });
 
