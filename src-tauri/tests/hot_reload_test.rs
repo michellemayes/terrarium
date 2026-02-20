@@ -4,7 +4,6 @@ use tauri::Listener;
 
 static BUNDLER_PATH_INIT: OnceLock<()> = OnceLock::new();
 
-/// Helper: set TERRARIUM_BUNDLER_PATH to the real bundler.mjs in this repo.
 fn set_bundler_path() {
     BUNDLER_PATH_INIT.get_or_init(|| {
         let bundler = format!("{}/resources/bundler.mjs", env!("CARGO_MANIFEST_DIR"));
@@ -14,7 +13,6 @@ fn set_bundler_path() {
     });
 }
 
-/// Helper: create a mock Tauri app for testing.
 fn mock_app() -> tauri::App<tauri::test::MockRuntime> {
     tauri::test::mock_builder()
         .build(tauri::test::mock_context(tauri::test::noop_assets()))
@@ -63,7 +61,6 @@ async fn watcher_triggers_rebundle_on_file_change() {
     )
     .unwrap();
 
-    // Listen for bundle-ready events
     let received = Arc::new(Mutex::new(Vec::<String>::new()));
     let errors = Arc::new(Mutex::new(Vec::<String>::new()));
 
@@ -79,14 +76,13 @@ async fn watcher_triggers_rebundle_on_file_change() {
         errors_clone.lock().unwrap().push(payload);
     });
 
-    // Start watching the file
     let _watcher =
         terrarium_lib::watcher::watch_file(handle.clone(), file.clone()).expect("watch_file failed");
 
     // Wait for watcher to initialize
     tokio::time::sleep(Duration::from_millis(1000)).await;
 
-    // Modify the file — this should trigger a rebundle
+    // Modify the file — triggers a rebundle
     std::fs::write(
         &file,
         r#"export default function V2() { return <div>v2</div>; }"#,
@@ -134,7 +130,6 @@ async fn watcher_emits_error_on_invalid_tsx() {
     )
     .unwrap();
 
-    // Listen for bundle-error events
     let errors = Arc::new(Mutex::new(Vec::<String>::new()));
     let errors_clone = errors.clone();
     handle.listen("bundle-error", move |event| {
@@ -149,17 +144,14 @@ async fn watcher_emits_error_on_invalid_tsx() {
         ready_clone.lock().unwrap().push(payload);
     });
 
-    // Start watching
     let _watcher =
         terrarium_lib::watcher::watch_file(handle.clone(), file.clone()).expect("watch_file failed");
 
     // Wait for watcher to initialize
     tokio::time::sleep(Duration::from_millis(1000)).await;
 
-    // Write invalid syntax
     std::fs::write(&file, "this is not valid tsx {{{").unwrap();
 
-    // Wait for error event
     let deadline = tokio::time::Instant::now() + Duration::from_secs(15);
     loop {
         tokio::time::sleep(Duration::from_millis(500)).await;
