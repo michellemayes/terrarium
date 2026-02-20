@@ -9,9 +9,7 @@ const CACHE_DIR = process.env.TERRARIUM_CACHE_DIR || path.join(os.homedir(), '.t
 const NODE_MODULES = path.join(CACHE_DIR, 'node_modules');
 
 export function ensureCacheDir() {
-  if (!fs.existsSync(CACHE_DIR)) {
-    fs.mkdirSync(CACHE_DIR, { recursive: true });
-  }
+  fs.mkdirSync(CACHE_DIR, { recursive: true });
   const pkgPath = path.join(CACHE_DIR, 'package.json');
   if (!fs.existsSync(pkgPath)) {
     fs.writeFileSync(pkgPath, JSON.stringify({ name: 'terrarium-cache', private: true }, null, 2));
@@ -27,13 +25,12 @@ export function installPackages(packages) {
   });
 }
 
+function packageName(specifier) {
+  return specifier.startsWith('@') ? specifier.split('/').slice(0, 2).join('/') : specifier.split('/')[0];
+}
+
 export function isInstalled(pkg) {
-  try {
-    const pkgName = pkg.startsWith('@') ? pkg.split('/').slice(0, 2).join('/') : pkg.split('/')[0];
-    return fs.existsSync(path.join(NODE_MODULES, pkgName));
-  } catch {
-    return false;
-  }
+  return fs.existsSync(path.join(NODE_MODULES, packageName(pkg)));
 }
 
 export async function bundle(inputFile) {
@@ -46,10 +43,7 @@ export async function bundle(inputFile) {
   }
 
   const basePackages = ['react', 'react-dom', 'esbuild'];
-  const missingBase = basePackages.filter(p => !isInstalled(p));
-  if (missingBase.length > 0) {
-    installPackages(missingBase);
-  }
+  installPackages(basePackages.filter(p => !isInstalled(p)));
 
   const esbuildPath = path.join(NODE_MODULES, 'esbuild', 'lib', 'main.js');
   const esbuild = await import(esbuildPath);
@@ -60,10 +54,7 @@ export async function bundle(inputFile) {
     name: 'detect-missing',
     setup(build) {
       build.onResolve({ filter: /^[^./]/ }, (args) => {
-        const pkg = args.path.startsWith('@')
-          ? args.path.split('/').slice(0, 2).join('/')
-          : args.path.split('/')[0];
-
+        const pkg = packageName(args.path);
         if (!isInstalled(pkg)) {
           missing.add(pkg);
           return { path: args.path, external: true };
@@ -86,9 +77,7 @@ export async function bundle(inputFile) {
     logLevel: 'silent'
   });
 
-  if (missing.size > 0) {
-    installPackages(Array.from(missing));
-  }
+  installPackages([...missing]);
 
   const entryCode = `
     import * as _Module from ${JSON.stringify(resolvedInput)};

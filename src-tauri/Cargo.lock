@@ -4305,12 +4305,11 @@ dependencies = [
 
 [[package]]
 name = "terrarium"
-version = "0.1.0"
+version = "0.1.1"
 dependencies = [
  "dirs",
  "log",
  "notify",
- "serde",
  "serde_json",
  "tauri",
  "tauri-build",

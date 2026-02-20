@@ -73,13 +73,11 @@ fn find_node_via_shell() -> Option<PathBuf> {
         .args(["-l", "-c", "which node"])
         .output()
         .ok()?;
-    if output.status.success() {
-        let path = String::from_utf8_lossy(&output.stdout).trim().to_string();
-        if !path.is_empty() {
-            return Some(PathBuf::from(path));
-        }
-    }
-    None
+    output.status.success().then(|| {
+        String::from_utf8_lossy(&output.stdout).trim().to_string()
+    })
+    .filter(|p| !p.is_empty())
+    .map(PathBuf::from)
 }
 
 pub fn bundler_script_path(app_handle: &tauri::AppHandle) -> Result<PathBuf, String> {
@@ -131,20 +129,20 @@ pub async fn bundle_tsx(app_handle: &tauri::AppHandle, tsx_path: &Path) -> Resul
         let _ = app_handle.emit("install-finished", ());
     }
 
+    let stdout = String::from_utf8_lossy(&output.stdout).to_string();
+
+    // Bundler writes JSON error payloads to stdout in both success and failure cases
+    if stdout.starts_with("{\"error\":true")
+        || (!output.status.success() && stdout.starts_with('{'))
+    {
+        return Err(stdout);
+    }
+
     if output.status.success() {
-        let stdout = String::from_utf8_lossy(&output.stdout).to_string();
-        if stdout.starts_with("{\"error\":true") {
-            return Err(stdout);
-        }
         Ok(stdout)
     } else {
         let stderr = String::from_utf8_lossy(&output.stderr).to_string();
-        let stdout = String::from_utf8_lossy(&output.stdout).to_string();
-        if !stdout.is_empty() && stdout.starts_with('{') {
-            Err(stdout)
-        } else {
-            Err(format!("Bundler failed:\n{stderr}"))
-        }
+        Err(format!("Bundler failed:\n{stderr}"))
     }
 }
 

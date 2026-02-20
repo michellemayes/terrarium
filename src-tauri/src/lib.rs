@@ -140,12 +140,11 @@ pub fn run() {
             let app_handle = app.handle().clone();
             let state = app.state::<AppState>();
 
-            // Handle CLI arguments
-            // Try the CLI plugin first, fall back to std::env::args for dev mode
-            // (tauri dev passes extra flags like --no-default-features that the CLI plugin rejects)
+            // Try CLI plugin first, then fall back to raw args for dev mode
+            // (tauri dev passes extra flags that the CLI plugin rejects)
             {
                 use tauri_plugin_cli::CliExt;
-                let found_file = app
+                let resolved = app
                     .cli()
                     .matches()
                     .ok()
@@ -153,32 +152,23 @@ pub fn run() {
                     .and_then(|a| a.value.as_str().map(String::from))
                     .filter(|p| !p.is_empty())
                     .map(|path| {
-                        let resolved =
-                            std::fs::canonicalize(&path).unwrap_or_else(|_| PathBuf::from(&path));
-                        if let Ok(mut file) = state.current_file.lock() {
-                            *file = Some(resolved);
-                        }
+                        std::fs::canonicalize(&path).unwrap_or_else(|_| PathBuf::from(&path))
                     })
-                    .is_some();
+                    .or_else(|| {
+                        // Fallback: check raw args for a .tsx file path
+                        // In dev mode, CWD may be src-tauri/, so also try parent directory
+                        std::env::args().skip(1)
+                            .filter(|arg| arg.ends_with(".tsx"))
+                            .find_map(|arg| {
+                                std::fs::canonicalize(&arg)
+                                    .or_else(|_| std::fs::canonicalize(PathBuf::from("..").join(&arg)))
+                                    .ok()
+                            })
+                    });
 
-                // Fallback: check raw args for a .tsx file path
-                // In dev mode, CWD may be src-tauri/, so also try parent directory
-                if !found_file {
+                if let Some(path) = resolved {
                     if let Ok(mut file) = state.current_file.lock() {
-                        for arg in std::env::args().skip(1) {
-                            if arg.ends_with(".tsx") {
-                                let path = PathBuf::from(&arg);
-                                if let Ok(resolved) = std::fs::canonicalize(&path) {
-                                    *file = Some(resolved);
-                                    break;
-                                }
-                                let from_parent = PathBuf::from("..").join(&path);
-                                if let Ok(resolved) = std::fs::canonicalize(&from_parent) {
-                                    *file = Some(resolved);
-                                    break;
-                                }
-                            }
-                        }
+                        *file = Some(path);
                     }
                 }
             }
@@ -218,17 +208,12 @@ pub fn run() {
                     let _ = window.set_title(&format!("{name} — Terrarium"));
                 }
 
-                match bundler::bundle_tsx(&handle, &path).await {
-                    Ok(bundle) => {
-                        if handle.emit("bundle-ready", bundle).is_err() {
-                            log::warn!("Failed to emit bundle-ready event");
-                        }
-                    }
-                    Err(err) => {
-                        if handle.emit("bundle-error", err).is_err() {
-                            log::warn!("Failed to emit bundle-error event");
-                        }
-                    }
+                let (event, payload) = match bundler::bundle_tsx(&handle, &path).await {
+                    Ok(bundle) => ("bundle-ready", bundle),
+                    Err(err) => ("bundle-error", err),
+                };
+                if handle.emit(event, payload).is_err() {
+                    log::warn!("Failed to emit {event} event");
                 }
 
                 if let Ok(w) = watcher::watch_file(handle.clone(), path) {

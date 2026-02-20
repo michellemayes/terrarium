@@ -32,33 +32,26 @@ pub fn watch_file(
         let mut last_rebuild = Instant::now();
 
         for event in rx {
-            let affects_our_file = event.paths.iter().any(|p| p == &watched_path);
-            if !affects_our_file {
+            if !event.paths.iter().any(|p| p == &watched_path) {
                 continue;
             }
-
-            match event.kind {
-                EventKind::Modify(_) | EventKind::Create(_) => {
-                    if !should_rebuild(last_rebuild, 300) {
-                        continue;
-                    }
-                    last_rebuild = Instant::now();
-
-                    let app = app_handle.clone();
-                    let path = watched_path.clone();
-                    tauri::async_runtime::spawn(async move {
-                        match crate::bundler::bundle_tsx(&app, &path).await {
-                            Ok(bundle) => {
-                                let _ = app.emit("bundle-ready", bundle);
-                            }
-                            Err(err) => {
-                                let _ = app.emit("bundle-error", err);
-                            }
-                        }
-                    });
-                }
-                _ => {}
+            if !matches!(event.kind, EventKind::Modify(_) | EventKind::Create(_)) {
+                continue;
             }
+            if !should_rebuild(last_rebuild, 300) {
+                continue;
+            }
+            last_rebuild = Instant::now();
+
+            let app = app_handle.clone();
+            let path = watched_path.clone();
+            tauri::async_runtime::spawn(async move {
+                let (event, payload) = match crate::bundler::bundle_tsx(&app, &path).await {
+                    Ok(bundle) => ("bundle-ready", bundle),
+                    Err(err) => ("bundle-error", err),
+                };
+                let _ = app.emit(event, payload);
+            });
         }
     });
 
