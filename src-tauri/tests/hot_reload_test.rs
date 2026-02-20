@@ -2,6 +2,11 @@ use std::sync::{Arc, Mutex, OnceLock};
 use std::time::Duration;
 use tauri::Listener;
 
+// NOTE: We use `listen_any` instead of `listen` because the watcher emits
+// events via `emit_to(label, ..)` which targets a specific window.
+// `listen` on AppHandle only receives untargeted broadcasts, while
+// `listen_any` receives events regardless of target.
+
 static BUNDLER_PATH_INIT: OnceLock<()> = OnceLock::new();
 
 fn set_bundler_path() {
@@ -71,13 +76,13 @@ async fn watcher_triggers_rebundle_on_file_change() {
     let errors = Arc::new(Mutex::new(Vec::<String>::new()));
 
     let received_clone = received.clone();
-    handle.listen("bundle-ready", move |event| {
+    handle.listen_any("bundle-ready", move |event| {
         let payload = event.payload().to_string();
         received_clone.lock().unwrap().push(payload);
     });
 
     let errors_clone = errors.clone();
-    handle.listen("bundle-error", move |event| {
+    handle.listen_any("bundle-error", move |event| {
         let payload = event.payload().to_string();
         errors_clone.lock().unwrap().push(payload);
     });
@@ -142,14 +147,14 @@ async fn watcher_emits_error_on_invalid_tsx() {
 
     let errors = Arc::new(Mutex::new(Vec::<String>::new()));
     let errors_clone = errors.clone();
-    handle.listen("bundle-error", move |event| {
+    handle.listen_any("bundle-error", move |event| {
         let payload = event.payload().to_string();
         errors_clone.lock().unwrap().push(payload);
     });
 
     let ready = Arc::new(Mutex::new(Vec::<String>::new()));
     let ready_clone = ready.clone();
-    handle.listen("bundle-ready", move |event| {
+    handle.listen_any("bundle-ready", move |event| {
         let payload = event.payload().to_string();
         ready_clone.lock().unwrap().push(payload);
     });
