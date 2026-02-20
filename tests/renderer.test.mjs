@@ -83,6 +83,50 @@ describe('renderer', () => {
       expect(document.getElementById('error-banner').classList.contains('visible')).toBe(false);
       expect(document.getElementById('root').style.opacity).toBe('1');
     });
+
+    it('shows syntax error title and location detail from bundler JSON', () => {
+      const { document, emit } = createRendererEnv();
+      emit('bundle-error', JSON.stringify({
+        error: true,
+        type: 'syntax',
+        message: 'Build failed',
+        errors: [
+          {
+            text: 'Expected ")" but found "}"',
+            location: { file: '/tmp/App.tsx', line: 12, column: 8 }
+          }
+        ]
+      }));
+      expect(document.getElementById('error-title').textContent).toBe('Syntax Error');
+      expect(document.getElementById('error-detail').textContent).toContain('/tmp/App.tsx:12:8');
+      expect(document.getElementById('error-detail').textContent).toContain('Expected ")" but found "}"');
+    });
+
+    it('shows missing package guidance for resolve errors', () => {
+      const { document, emit } = createRendererEnv();
+      emit('bundle-error', JSON.stringify({
+        error: true,
+        type: 'resolve',
+        message: 'Could not resolve "lucide-react"',
+        errors: [{ text: 'Could not resolve "lucide-react"' }]
+      }));
+      expect(document.getElementById('error-title').textContent).toBe('Missing Package');
+      expect(document.getElementById('error-detail').textContent)
+        .toContain("Can't find package 'lucide-react'.");
+    });
+
+    it('shows friendly network copy for network errors', () => {
+      const { document, emit } = createRendererEnv();
+      emit('bundle-error', JSON.stringify({
+        error: true,
+        type: 'network',
+        message: 'Network error',
+        errors: []
+      }));
+      expect(document.getElementById('error-title').textContent).toBe('Network Error');
+      expect(document.getElementById('error-detail').textContent)
+        .toContain('Failed to install dependencies. Check your internet connection and try again.');
+    });
   });
 
   describe('toggleError', () => {

@@ -38,7 +38,36 @@ if (nodeBannerClose && nodeBanner) {
 }
 
 function showError(message) {
-  errorDetail.textContent = message;
+  let title = 'Build Error';
+  let detail = message;
+
+  try {
+    const parsed = JSON.parse(message);
+    if (parsed.error) {
+      detail = parsed.message || message;
+      if (parsed.type === 'syntax') {
+        title = 'Syntax Error';
+        const loc = parsed.errors?.[0]?.location;
+        if (loc) {
+          detail = `${loc.file || 'file'}:${loc.line}:${loc.column}\n\n${parsed.errors[0].text}`;
+        }
+      } else if (parsed.type === 'resolve') {
+        title = 'Missing Package';
+        const pkg = parsed.errors?.[0]?.text?.match(/Could not resolve "([^"]+)"/)?.[1] || '';
+        detail = pkg
+          ? `Can't find package '${pkg}'. Check the package name or your network connection.`
+          : detail;
+      } else if (parsed.type === 'network') {
+        title = 'Network Error';
+        detail = 'Failed to install dependencies. Check your internet connection and try again.';
+      }
+    }
+  } catch {
+    // Not JSON, use raw message.
+  }
+
+  document.getElementById('error-title').textContent = title;
+  errorDetail.textContent = detail;
   errorBanner.classList.add('visible');
   root.style.opacity = '0.4';
   detailExpanded = true;
