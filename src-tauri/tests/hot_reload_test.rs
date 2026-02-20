@@ -32,8 +32,11 @@ async fn bundler_produces_valid_output() {
     let dir = tempfile::TempDir::new().unwrap();
     let dir_path = dir.path().canonicalize().unwrap();
     let file = dir_path.join("test.tsx");
-    std::fs::write(&file, r#"export default function Hello() { return <div>hello</div>; }"#)
-        .unwrap();
+    std::fs::write(
+        &file,
+        r#"export default function Hello() { return <div>hello</div>; }"#,
+    )
+    .unwrap();
 
     let result = terrarium_lib::bundler::bundle_tsx(handle, &file).await;
     assert!(result.is_ok(), "bundle_tsx failed: {:?}", result.err());
@@ -79,8 +82,8 @@ async fn watcher_triggers_rebundle_on_file_change() {
         errors_clone.lock().unwrap().push(payload);
     });
 
-    let _watcher =
-        terrarium_lib::watcher::watch_file(handle.clone(), file.clone()).expect("watch_file failed");
+    let _watcher = terrarium_lib::watcher::watch_file(handle.clone(), file.clone())
+        .expect("watch_file failed");
 
     // Heuristic: give the OS file watcher time to register. 1s is generous for
     // local dev; on a heavily loaded CI runner this could still be insufficient.
@@ -108,7 +111,11 @@ async fn watcher_triggers_rebundle_on_file_change() {
 
     let events: Vec<String> = received.lock().unwrap().clone();
     let error_events: Vec<String> = errors.lock().unwrap().clone();
-    assert!(!events.is_empty(), "Expected at least one bundle-ready event, but got errors: {:?}", error_events);
+    assert!(
+        !events.is_empty(),
+        "Expected at least one bundle-ready event, but got errors: {:?}",
+        error_events
+    );
     assert!(
         !events[0].is_empty(),
         "bundle-ready payload should not be empty"
@@ -146,8 +153,8 @@ async fn watcher_emits_error_on_invalid_tsx() {
         ready_clone.lock().unwrap().push(payload);
     });
 
-    let _watcher =
-        terrarium_lib::watcher::watch_file(handle.clone(), file.clone()).expect("watch_file failed");
+    let _watcher = terrarium_lib::watcher::watch_file(handle.clone(), file.clone())
+        .expect("watch_file failed");
 
     // Heuristic: give the OS file watcher time to register.
     tokio::time::sleep(Duration::from_millis(1000)).await;

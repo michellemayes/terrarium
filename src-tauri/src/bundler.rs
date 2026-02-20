@@ -82,7 +82,9 @@ fn find_node_via_shell() -> Option<PathBuf> {
     None
 }
 
-pub fn bundler_script_path<R: tauri::Runtime>(app_handle: &tauri::AppHandle<R>) -> Result<PathBuf, String> {
+pub fn bundler_script_path<R: tauri::Runtime>(
+    app_handle: &tauri::AppHandle<R>,
+) -> Result<PathBuf, String> {
     if let Ok(path) = std::env::var("TERRARIUM_BUNDLER_PATH") {
         return Ok(PathBuf::from(path));
     }
@@ -100,7 +102,10 @@ pub fn needs_install() -> bool {
     !cache_dir().join("node_modules").join("react").exists()
 }
 
-pub async fn bundle_tsx<R: tauri::Runtime>(app_handle: &tauri::AppHandle<R>, tsx_path: &Path) -> Result<String, String> {
+pub async fn bundle_tsx<R: tauri::Runtime>(
+    app_handle: &tauri::AppHandle<R>,
+    tsx_path: &Path,
+) -> Result<String, String> {
     use tauri::Emitter;
 
     let installing = needs_install();
