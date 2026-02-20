@@ -428,8 +428,32 @@ pub fn run() {
                 };
             }
         })
-        .run(tauri::generate_context!())
-        .expect("error while running tauri application");
+        .build(tauri::generate_context!())
+        .expect("error while building tauri application")
+        .run(|app, event| {
+            if let tauri::RunEvent::Opened { urls } = event {
+                let tsx_paths: Vec<PathBuf> = urls
+                    .iter()
+                    .filter(|u| u.scheme() == "file" && u.path().ends_with(".tsx"))
+                    .filter_map(|u| u.to_file_path().ok())
+                    .collect();
+
+                if tsx_paths.is_empty() {
+                    return;
+                }
+
+                let state = app.state::<AppState>();
+
+                for tsx_path in tsx_paths {
+                    let label = next_label(&state);
+                    if let Ok(window) = create_window(app, &label) {
+                        let filename = tsx_path.file_name().unwrap_or_default().to_string_lossy();
+                        let _ = window.set_title(&format!("{filename} — Terrarium"));
+                        spawn_bundle_and_watch(app.clone(), tsx_path, label);
+                    }
+                }
+            }
+        });
 }
 
 #[cfg(test)]
