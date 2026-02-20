@@ -51,7 +51,7 @@ Download the latest `.dmg` from [**Releases**](https://github.com/michellemayes/
 To use from the command line, add this to your `~/.zshrc`:
 
 ```bash
-alias terrarium="/Applications/Terrarium.app/Contents/MacOS/Terrarium"
+alias terrarium='open -a Terrarium'
 ```
 
 ### Requirements
