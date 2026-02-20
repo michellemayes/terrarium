@@ -27,6 +27,11 @@ function createRendererEnv() {
     core: {
       invoke: vi.fn(() => Promise.reject('No file loaded')),
     },
+    webviewWindow: {
+      getCurrentWindow: vi.fn(() => ({
+        show: vi.fn(() => Promise.resolve()),
+      })),
+    },
   };
 
   // Execute renderer.js in the JSDOM context
