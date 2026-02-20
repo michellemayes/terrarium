@@ -13,25 +13,27 @@ const nodeBannerLink = document.getElementById('node-banner-link');
 const nodeBannerClose = document.getElementById('node-banner-close');
 const firstRunHint = document.getElementById('first-run-hint');
 const firstRunDismiss = document.getElementById('first-run-dismiss');
+const NODEJS_URL = 'https://nodejs.org';
 
 let fileLoaded = false;
 let detailExpanded = true;
 let firstRunChecked = false;
 
+function showNodeBanner(message) {
+  if (!nodeBanner || !nodeBannerText || !nodeBannerLink) return;
+  nodeBannerText.textContent = message;
+  nodeBannerLink.href = NODEJS_URL;
+  nodeBanner.classList.add('visible');
+}
+
 invoke('check_node')
   .then(info => {
-    if (!info.supported && nodeBanner && nodeBannerText && nodeBannerLink) {
-      nodeBannerText.textContent = `Node.js ${info.version} found, but Terrarium needs v18+.`;
-      nodeBannerLink.href = 'https://nodejs.org';
-      nodeBanner.classList.add('visible');
+    if (!info.supported) {
+      showNodeBanner(`Node.js ${info.version} found, but Terrarium needs v18+.`);
     }
   })
   .catch(() => {
-    if (nodeBanner && nodeBannerText && nodeBannerLink) {
-      nodeBannerText.textContent = 'Node.js not found. Terrarium needs Node.js 18+ to run.';
-      nodeBannerLink.href = 'https://nodejs.org';
-      nodeBanner.classList.add('visible');
-    }
+    showNodeBanner('Node.js not found. Terrarium needs Node.js 18+ to run.');
   });
 
 if (nodeBannerClose && nodeBanner) {
@@ -60,6 +62,7 @@ if (firstRunDismiss && firstRunHint) {
 }
 
 function showError(message) {
+  const errorTitle = document.getElementById('error-title');
   let title = 'Build Error';
   let detail = message;
 
@@ -84,11 +87,9 @@ function showError(message) {
         detail = 'Failed to install dependencies. Check your internet connection and try again.';
       }
     }
-  } catch {
-    // Not JSON, use raw message.
-  }
+  } catch {}
 
-  document.getElementById('error-title').textContent = title;
+  errorTitle.textContent = title;
   errorDetail.textContent = detail;
   errorBanner.classList.add('visible');
   root.style.opacity = '0.4';

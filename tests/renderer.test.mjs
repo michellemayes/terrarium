@@ -15,7 +15,6 @@ function createRendererEnv(invokeImpl) {
 
   const listeners = {};
 
-  // Mock Tauri APIs
   dom.window.__TAURI__ = {
     event: {
       listen: vi.fn((event, handler) => {
@@ -34,7 +33,6 @@ function createRendererEnv(invokeImpl) {
     },
   };
 
-  // Execute renderer.js in the JSDOM context
   dom.window.eval(RENDERER_SRC);
 
   function emit(event, payload) {
@@ -122,7 +120,6 @@ describe('renderer', () => {
       const { document, emit } = createRendererEnv();
       emit('bundle-error', 'error');
       expect(document.getElementById('error-banner').classList.contains('visible')).toBe(true);
-      // A successful bundle clears the error
       emit('bundle-ready', 'void 0;');
       expect(document.getElementById('error-banner').classList.contains('visible')).toBe(false);
       expect(document.getElementById('root').style.opacity).toBe('1');
@@ -245,9 +242,7 @@ describe('renderer', () => {
 
     it('opens all dropped tsx files in new windows when file already loaded', () => {
       const { emit, window } = createRendererEnv();
-      // Simulate a file already being loaded
       emit('bundle-ready', 'void 0;');
-      // Drop multiple files
       emit('tauri://drag-drop', { paths: ['/a.tsx', '/b.tsx', '/c.tsx'] });
       expect(window.__TAURI__.core.invoke).toHaveBeenCalledWith(
         'open_in_new_windows',
@@ -257,7 +252,6 @@ describe('renderer', () => {
 
     it('opens first dropped file locally and rest in new windows on welcome screen', () => {
       const { emit, window } = createRendererEnv();
-      // No file loaded yet (welcome screen)
       emit('tauri://drag-drop', { paths: ['/a.tsx', '/b.tsx', '/c.tsx'] });
       expect(window.__TAURI__.core.invoke).toHaveBeenCalledWith('open_file', { path: '/a.tsx' });
       expect(window.__TAURI__.core.invoke).toHaveBeenCalledWith(

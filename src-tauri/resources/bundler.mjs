@@ -7,6 +7,7 @@ import * as os from 'os';
 
 const CACHE_DIR = process.env.TERRARIUM_CACHE_DIR || path.join(os.homedir(), '.terrarium');
 const NODE_MODULES = path.join(CACHE_DIR, 'node_modules');
+const NETWORK_MARKERS = ['ENOTFOUND', 'ENETUNREACH', 'ETIMEDOUT', 'EAI_AGAIN', 'ECONNREFUSED'];
 
 export function ensureCacheDir() {
   fs.mkdirSync(CACHE_DIR, { recursive: true });
@@ -27,19 +28,17 @@ export function installPackages(packages) {
     });
   } catch (err) {
     const msg = String(err.stderr || err.stdout || err.message || '');
-    if (
-      msg.includes('ENOTFOUND')
-      || msg.includes('ENETUNREACH')
-      || msg.includes('ETIMEDOUT')
-      || msg.includes('EAI_AGAIN')
-      || msg.includes('ECONNREFUSED')
-    ) {
+    if (isNetworkMessage(msg)) {
       const networkErr = new Error(`Network error: could not install ${packages.join(', ')}. Check your internet connection.`);
       networkErr.type = 'network';
       throw networkErr;
     }
     throw err;
   }
+}
+
+function isNetworkMessage(message) {
+  return NETWORK_MARKERS.some(marker => message.includes(marker));
 }
 
 function packageName(specifier) {
@@ -148,21 +147,7 @@ bundle(inputFile)
     process.stdout.write(output);
   })
   .catch(err => {
-    let type = 'unknown';
-    if (err.type) {
-      type = err.type;
-    } else {
-      const msg = err.message || '';
-      if (err.errors?.some(e => e.text?.includes('Expected'))) {
-        type = 'syntax';
-      } else if (msg.includes('Could not resolve') || err.errors?.some(e => e.text?.includes('Could not resolve'))) {
-        type = 'resolve';
-      } else if (msg.includes('ENOTFOUND') || msg.includes('ENETUNREACH') || msg.includes('npm ERR!')) {
-        type = 'network';
-      } else if (err.errors?.length > 0) {
-        type = 'build';
-      }
-    }
+    const type = classifyErrorType(err);
     const errorPayload = JSON.stringify({
       error: true,
       type,
@@ -172,3 +157,15 @@ bundle(inputFile)
     process.stdout.write(errorPayload);
     process.exit(1);
   });
+
+function classifyErrorType(err) {
+  if (err.type) return err.type;
+  const message = err.message || '';
+  if (err.errors?.some(e => e.text?.includes('Expected'))) return 'syntax';
+  if (message.includes('Could not resolve') || err.errors?.some(e => e.text?.includes('Could not resolve'))) {
+    return 'resolve';
+  }
+  if (message.includes('npm ERR!') || isNetworkMessage(message)) return 'network';
+  if (err.errors?.length > 0) return 'build';
+  return 'unknown';
+}
