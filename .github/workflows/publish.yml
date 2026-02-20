@@ -117,3 +117,16 @@ jobs:
           ASSETS=$(gh release view "$RELEASE_TAG" --json assets --jq '.assets[].name')
           echo "$ASSETS" | grep -q 'latest.json' || { echo "Missing latest.json"; exit 1; }
           echo "$ASSETS" | grep -qE '\.sig$' || { echo "Missing .sig files"; exit 1; }
+
+  release-notes:
+    needs: publish
+    runs-on: ubuntu-latest
+    env:
+      GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      RELEASE_TAG: ${{ github.ref_name }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Add auto-generated release notes
+        run: gh release edit "$RELEASE_TAG" --generate-notes
