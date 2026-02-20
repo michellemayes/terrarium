@@ -248,10 +248,13 @@ fn mark_first_run_complete() -> Result<(), String> {
 
 #[tauri::command]
 fn get_recent_files() -> Vec<recent::RecentFile> {
-    recent::read_recent()
+    let entries = recent::read_recent();
+    let live: Vec<recent::RecentFile> = entries
         .into_iter()
         .filter(|e| std::path::Path::new(&e.path).exists())
-        .collect()
+        .collect();
+    recent::write_recent(&live);
+    live
 }
 
 pub fn run() {

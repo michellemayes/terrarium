@@ -5,7 +5,7 @@ use std::time::{SystemTime, UNIX_EPOCH};
 use crate::bundler::cache_dir;
 
 const MAX_RECENT: usize = 6;
-const NUM_PLANT_TYPES: u32 = 6;
+const NUM_PLANT_TYPES: u32 = 6; // u32 to match hash arithmetic in plant_index
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 pub struct RecentFile {
@@ -27,6 +27,17 @@ pub fn read_recent() -> Vec<RecentFile> {
         return Vec::new();
     };
     serde_json::from_str(&data).unwrap_or_default()
+}
+
+/// Writes the given list to disk (best-effort). Used to prune dead entries.
+pub fn write_recent(entries: &[RecentFile]) {
+    let path = recent_file_path();
+    if let Some(parent) = path.parent() {
+        let _ = std::fs::create_dir_all(parent);
+    }
+    if let Ok(json) = serde_json::to_string_pretty(entries) {
+        let _ = std::fs::write(&path, json);
+    }
 }
 
 /// Adds or bumps `file_path` to the front of the recent files list.

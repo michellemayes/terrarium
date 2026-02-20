@@ -50,14 +50,12 @@ fn recent_file_deserialization_returns_default_on_corrupt_json() {
     assert!(fallback.is_empty());
 }
 
+// These tests read/write the real ~/.terrarium/recent-files.json, so they
+// must not run in parallel with each other. We use #[ignore] and run them
+// separately with: cargo test --test recent_test -- --ignored --test-threads=1
 #[test]
+#[ignore]
 fn plant_index_is_deterministic_for_same_path() {
-    // record_recent assigns a plant index based on a hash of path bytes.
-    // Calling it twice with the same path should produce the same plant index.
-    // We test this indirectly via record_recent to exercise the public API.
-    //
-    // Note: record_recent writes to ~/.terrarium/recent-files.json, so we
-    // back up the original contents and restore them after the test.
     let recent_path = terrarium_lib::bundler::cache_dir().join("recent-files.json");
     let backup = std::fs::read_to_string(&recent_path).ok();
 
@@ -79,7 +77,6 @@ fn plant_index_is_deterministic_for_same_path() {
 
     assert_eq!(plant1, plant2, "plant index should be deterministic");
 
-    // Restore original file contents.
     if let Some(original) = backup {
         let _ = std::fs::write(&recent_path, original);
     } else {
@@ -88,9 +85,8 @@ fn plant_index_is_deterministic_for_same_path() {
 }
 
 #[test]
+#[ignore]
 fn record_recent_places_entry_at_front() {
-    // record_recent should place the newly recorded path at position 0.
-    // We back up and restore the real file to avoid side effects.
     let recent_path = terrarium_lib::bundler::cache_dir().join("recent-files.json");
     let backup = std::fs::read_to_string(&recent_path).ok();
 
@@ -102,7 +98,6 @@ fn record_recent_places_entry_at_front() {
         "most recently recorded file should be at index 0"
     );
 
-    // Restore original file contents.
     if let Some(original) = backup {
         let _ = std::fs::write(&recent_path, original);
     } else {
