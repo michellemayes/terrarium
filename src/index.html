@@ -73,6 +73,39 @@
       border-bottom: 1px solid #7c3aed;
     }
     #install-banner.visible { display: block; }
+    #node-banner {
+      display: none;
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      background: linear-gradient(135deg, #3b1a0a, #2a1000);
+      color: #fbbf24;
+      font-size: 13px;
+      padding: 10px 20px;
+      text-align: center;
+      z-index: 10000;
+      border-bottom: 1px solid #f59e0b;
+      gap: 8px;
+      align-items: center;
+      justify-content: center;
+    }
+    #node-banner.visible { display: flex; }
+    #node-banner-icon { font-size: 16px; }
+    #node-banner-link {
+      color: #fbbf24;
+      text-decoration: underline;
+      margin-left: 4px;
+    }
+    #node-banner-close {
+      background: none;
+      border: none;
+      color: #fbbf24;
+      cursor: pointer;
+      font-size: 18px;
+      margin-left: 12px;
+      padding: 0 4px;
+    }
     @keyframes spin { to { transform: rotate(360deg); } }
     .spinner {
       display: inline-block;
@@ -108,6 +141,33 @@
       color: #8b7aab;
     }
     #drop-overlay.visible { display: flex; }
+    #first-run-hint {
+      display: none;
+      position: fixed;
+      bottom: 20px;
+      left: 50%;
+      transform: translateX(-50%);
+      background: rgba(124, 58, 237, 0.95);
+      color: #fff;
+      padding: 12px 20px;
+      border-radius: 10px;
+      font-size: 13px;
+      z-index: 9997;
+      gap: 12px;
+      align-items: center;
+      box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+    }
+    #first-run-hint.visible { display: flex; }
+    #first-run-dismiss {
+      background: rgba(255, 255, 255, 0.2);
+      border: none;
+      color: #fff;
+      padding: 4px 12px;
+      border-radius: 6px;
+      cursor: pointer;
+      font-size: 12px;
+    }
+    #first-run-dismiss:hover { background: rgba(255, 255, 255, 0.3); }
     #error-banner {
       position: fixed;
       bottom: 0;
@@ -212,9 +272,19 @@
     </div>
   </div>
   <div id="install-banner"><span class="spinner"></span>Installing dependencies for the first time...</div>
+  <div id="node-banner">
+    <span id="node-banner-icon">&#9888;</span>
+    <span id="node-banner-text"></span>
+    <a id="node-banner-link" href="#" target="_blank">Install Node.js</a>
+    <button id="node-banner-close">&times;</button>
+  </div>
   <div id="drop-overlay">
     <span>Drop .tsx file here</span>
     <span class="drop-sub">Release to open and render</span>
+  </div>
+  <div id="first-run-hint">
+    <span>Tip: Edit your .tsx file in any editor - Terrarium reloads automatically.</span>
+    <button id="first-run-dismiss">Got it</button>
   </div>
   <div id="error-banner">
     <div id="error-header" onclick="toggleError()">

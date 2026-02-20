@@ -6,7 +6,7 @@ import * as path from 'path';
 const RENDERER_SRC = fs.readFileSync(path.resolve('src/renderer.js'), 'utf-8');
 const INDEX_HTML = fs.readFileSync(path.resolve('src/index.html'), 'utf-8');
 
-function createRendererEnv() {
+function createRendererEnv(invokeImpl) {
   const dom = new JSDOM(INDEX_HTML, {
     url: 'http://localhost',
     runScripts: 'dangerously',
@@ -16,7 +16,6 @@ function createRendererEnv() {
   const listeners = {};
   const showWindow = vi.fn(() => Promise.resolve());
 
-  // Mock Tauri APIs
   dom.window.__TAURI__ = {
     event: {
       listen: vi.fn((event, handler) => {
@@ -26,7 +25,12 @@ function createRendererEnv() {
       }),
     },
     core: {
-      invoke: vi.fn(() => Promise.reject('No file loaded')),
+      invoke: vi.fn((command, payload) => {
+        if (invokeImpl) {
+          return invokeImpl(command, payload);
+        }
+        return Promise.reject('No file loaded');
+      }),
     },
     webviewWindow: {
       getCurrentWindow: vi.fn(() => ({
@@ -35,7 +39,6 @@ function createRendererEnv() {
     },
   };
 
-  // Execute renderer.js in the JSDOM context
   dom.window.eval(RENDERER_SRC);
 
   function emit(event, payload) {
@@ -54,6 +57,62 @@ function createRendererEnv() {
 }
 
 describe('renderer', () => {
+  describe('first-run hint', () => {
+    it('has a first-run-hint element with expected structure', () => {
+      const dom = new JSDOM(INDEX_HTML);
+      const hint = dom.window.document.getElementById('first-run-hint');
+      expect(hint).toBeTruthy();
+      expect(hint.querySelector('#first-run-dismiss')).toBeTruthy();
+    });
+
+    it('shows first-run hint after first successful bundle when backend reports first run', async () => {
+      const { document, emit } = createRendererEnv((command) => {
+        if (command === 'check_node') return Promise.resolve({ supported: true, version: 'v20.0.0' });
+        if (command === 'request_bundle') return Promise.reject('No file loaded');
+        if (command === 'is_first_run') return Promise.resolve(true);
+        return Promise.reject('No file loaded');
+      });
+      emit('bundle-ready', 'void 0;');
+      await Promise.resolve();
+      await Promise.resolve();
+      expect(document.getElementById('first-run-hint').classList.contains('visible')).toBe(true);
+    });
+
+    it('dismisses first-run hint and marks first run complete', async () => {
+      const { document, emit, window } = createRendererEnv((command) => {
+        if (command === 'check_node') return Promise.resolve({ supported: true, version: 'v20.0.0' });
+        if (command === 'request_bundle') return Promise.reject('No file loaded');
+        if (command === 'is_first_run') return Promise.resolve(true);
+        if (command === 'mark_first_run_complete') return Promise.resolve();
+        return Promise.reject('No file loaded');
+      });
+      emit('bundle-ready', 'void 0;');
+      await Promise.resolve();
+      await Promise.resolve();
+      const dismiss = document.getElementById('first-run-dismiss');
+      dismiss.click();
+      expect(document.getElementById('first-run-hint').classList.contains('visible')).toBe(false);
+      expect(window.__TAURI__.core.invoke).toHaveBeenCalledWith('mark_first_run_complete');
+    });
+  });
+
+  describe('node banner', () => {
+    it('has a node-banner element with expected structure', () => {
+      const dom = new JSDOM(INDEX_HTML);
+      const banner = dom.window.document.getElementById('node-banner');
+      expect(banner).toBeTruthy();
+      expect(banner.querySelector('#node-banner-text')).toBeTruthy();
+      expect(banner.querySelector('#node-banner-link')).toBeTruthy();
+      expect(banner.querySelector('#node-banner-close')).toBeTruthy();
+    });
+
+    it('node-banner is hidden by default', () => {
+      const dom = new JSDOM(INDEX_HTML);
+      const banner = dom.window.document.getElementById('node-banner');
+      expect(banner.classList.contains('visible')).toBe(false);
+    });
+  });
+
   describe('showError / hideError', () => {
     it('shows error banner with message', () => {
       const { document, emit, showWindow } = createRendererEnv();
@@ -75,10 +134,53 @@ describe('renderer', () => {
       const { document, emit } = createRendererEnv();
       emit('bundle-error', 'error');
       expect(document.getElementById('error-banner').classList.contains('visible')).toBe(true);
-      // A successful bundle clears the error
       emit('bundle-ready', 'void 0;');
       expect(document.getElementById('error-banner').classList.contains('visible')).toBe(false);
       expect(document.getElementById('root').style.opacity).toBe('1');
+    });
+
+    it('shows syntax error title and location detail from bundler JSON', () => {
+      const { document, emit } = createRendererEnv();
+      emit('bundle-error', JSON.stringify({
+        error: true,
+        type: 'syntax',
+        message: 'Build failed',
+        errors: [
+          {
+            text: 'Expected ")" but found "}"',
+            location: { file: '/tmp/App.tsx', line: 12, column: 8 }
+          }
+        ]
+      }));
+      expect(document.getElementById('error-title').textContent).toBe('Syntax Error');
+      expect(document.getElementById('error-detail').textContent).toContain('/tmp/App.tsx:12:8');
+      expect(document.getElementById('error-detail').textContent).toContain('Expected ")" but found "}"');
+    });
+
+    it('shows missing package guidance for resolve errors', () => {
+      const { document, emit } = createRendererEnv();
+      emit('bundle-error', JSON.stringify({
+        error: true,
+        type: 'resolve',
+        message: 'Could not resolve "lucide-react"',
+        errors: [{ text: 'Could not resolve "lucide-react"' }]
+      }));
+      expect(document.getElementById('error-title').textContent).toBe('Missing Package');
+      expect(document.getElementById('error-detail').textContent)
+        .toContain("Can't find package 'lucide-react'.");
+    });
+
+    it('shows friendly network copy for network errors', () => {
+      const { document, emit } = createRendererEnv();
+      emit('bundle-error', JSON.stringify({
+        error: true,
+        type: 'network',
+        message: 'Network error',
+        errors: []
+      }));
+      expect(document.getElementById('error-title').textContent).toBe('Network Error');
+      expect(document.getElementById('error-detail').textContent)
+        .toContain('Failed to install dependencies. Check your internet connection and try again.');
     });
   });
 
@@ -161,9 +263,7 @@ describe('renderer', () => {
 
     it('opens all dropped tsx files in new windows when file already loaded', () => {
       const { emit, window } = createRendererEnv();
-      // Simulate a file already being loaded
       emit('bundle-ready', 'void 0;');
-      // Drop multiple files
       emit('tauri://drag-drop', { paths: ['/a.tsx', '/b.tsx', '/c.tsx'] });
       expect(window.__TAURI__.core.invoke).toHaveBeenCalledWith(
         'open_in_new_windows',
@@ -173,7 +273,6 @@ describe('renderer', () => {
 
     it('opens first dropped file locally and rest in new windows on welcome screen', () => {
       const { emit, window } = createRendererEnv();
-      // No file loaded yet (welcome screen)
       emit('tauri://drag-drop', { paths: ['/a.tsx', '/b.tsx', '/c.tsx'] });
       expect(window.__TAURI__.core.invoke).toHaveBeenCalledWith('open_file', { path: '/a.tsx' });
       expect(window.__TAURI__.core.invoke).toHaveBeenCalledWith(

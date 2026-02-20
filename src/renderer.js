@@ -8,12 +8,90 @@ const errorDetail = document.getElementById('error-detail');
 const errorToggle = document.getElementById('error-toggle');
 const dropOverlay = document.getElementById('drop-overlay');
 const installBanner = document.getElementById('install-banner');
+const nodeBanner = document.getElementById('node-banner');
+const nodeBannerText = document.getElementById('node-banner-text');
+const nodeBannerLink = document.getElementById('node-banner-link');
+const nodeBannerClose = document.getElementById('node-banner-close');
+const firstRunHint = document.getElementById('first-run-hint');
+const firstRunDismiss = document.getElementById('first-run-dismiss');
+const NODEJS_URL = 'https://nodejs.org';
 
 let fileLoaded = false;
 let detailExpanded = true;
+let firstRunChecked = false;
+
+function showNodeBanner(message) {
+  if (!nodeBanner || !nodeBannerText || !nodeBannerLink) return;
+  nodeBannerText.textContent = message;
+  nodeBannerLink.href = NODEJS_URL;
+  nodeBanner.classList.add('visible');
+}
+
+invoke('check_node')
+  .then(info => {
+    if (!info.supported) {
+      showNodeBanner(`Node.js ${info.version} found, but Terrarium needs v18+.`);
+    }
+  })
+  .catch(() => {
+    showNodeBanner('Node.js not found. Terrarium needs Node.js 18+ to run.');
+  });
+
+if (nodeBannerClose && nodeBanner) {
+  nodeBannerClose.addEventListener('click', () => {
+    nodeBanner.classList.remove('visible');
+  });
+}
+
+function maybeShowFirstRunHint() {
+  if (firstRunChecked || !firstRunHint) return;
+  firstRunChecked = true;
+  invoke('is_first_run')
+    .then(isFirst => {
+      if (isFirst) {
+        firstRunHint.classList.add('visible');
+      }
+    })
+    .catch(() => {});
+}
+
+if (firstRunDismiss && firstRunHint) {
+  firstRunDismiss.addEventListener('click', () => {
+    firstRunHint.classList.remove('visible');
+    invoke('mark_first_run_complete').catch(() => {});
+  });
+}
 
 function showError(message) {
-  errorDetail.textContent = message;
+  const errorTitle = document.getElementById('error-title');
+  let title = 'Build Error';
+  let detail = message;
+
+  try {
+    const parsed = JSON.parse(message);
+    if (parsed.error) {
+      detail = parsed.message || message;
+      if (parsed.type === 'syntax') {
+        title = 'Syntax Error';
+        const loc = parsed.errors?.[0]?.location;
+        if (loc) {
+          detail = `${loc.file || 'file'}:${loc.line}:${loc.column}\n\n${parsed.errors[0].text}`;
+        }
+      } else if (parsed.type === 'resolve') {
+        title = 'Missing Package';
+        const pkg = parsed.errors?.[0]?.text?.match(/Could not resolve "([^"]+)"/)?.[1] || '';
+        detail = pkg
+          ? `Can't find package '${pkg}'. Check the package name or your network connection.`
+          : detail;
+      } else if (parsed.type === 'network') {
+        title = 'Network Error';
+        detail = 'Failed to install dependencies. Check your internet connection and try again.';
+      }
+    }
+  } catch {}
+
+  errorTitle.textContent = title;
+  errorDetail.textContent = detail;
   errorBanner.classList.add('visible');
   root.style.opacity = '0.4';
   detailExpanded = true;
@@ -35,6 +113,7 @@ window.toggleError = function() {
 async function renderBundle(bundledCode) {
   try {
     hideError();
+    maybeShowFirstRunHint();
     root.innerHTML = '';
     new Function(bundledCode)();
   } catch (err) {

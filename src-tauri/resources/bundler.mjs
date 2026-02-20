@@ -7,6 +7,7 @@ import * as os from 'os';
 
 const CACHE_DIR = process.env.TERRARIUM_CACHE_DIR || path.join(os.homedir(), '.terrarium');
 const NODE_MODULES = path.join(CACHE_DIR, 'node_modules');
+const NETWORK_MARKERS = ['ENOTFOUND', 'ENETUNREACH', 'ETIMEDOUT', 'EAI_AGAIN', 'ECONNREFUSED'];
 
 export function ensureCacheDir() {
   fs.mkdirSync(CACHE_DIR, { recursive: true });
@@ -19,10 +20,25 @@ export function ensureCacheDir() {
 export function installPackages(packages) {
   if (packages.length === 0) return;
   console.error(`[terrarium] Installing: ${packages.join(' ')}`);
-  execFileSync('npm', ['install', '--prefix', CACHE_DIR, ...packages], {
-    stdio: ['pipe', 'pipe', 'inherit'],
-    timeout: 120000
-  });
+  try {
+    execFileSync('npm', ['install', '--prefix', CACHE_DIR, ...packages], {
+      stdio: ['pipe', 'pipe', 'pipe'],
+      encoding: 'utf-8',
+      timeout: 120000
+    });
+  } catch (err) {
+    const msg = String(err.stderr || err.stdout || err.message || '');
+    if (isNetworkMessage(msg)) {
+      const networkErr = new Error(`Network error: could not install ${packages.join(', ')}. Check your internet connection.`);
+      networkErr.type = 'network';
+      throw networkErr;
+    }
+    throw err;
+  }
+}
+
+function isNetworkMessage(message) {
+  return NETWORK_MARKERS.some(marker => message.includes(marker));
 }
 
 function packageName(specifier) {
@@ -131,11 +147,25 @@ bundle(inputFile)
     process.stdout.write(output);
   })
   .catch(err => {
+    const type = classifyErrorType(err);
     const errorPayload = JSON.stringify({
       error: true,
+      type,
       message: err.message,
       errors: err.errors || []
     });
     process.stdout.write(errorPayload);
     process.exit(1);
   });
+
+function classifyErrorType(err) {
+  if (err.type) return err.type;
+  const message = err.message || '';
+  if (err.errors?.some(e => e.text?.includes('Expected'))) return 'syntax';
+  if (message.includes('Could not resolve') || err.errors?.some(e => e.text?.includes('Could not resolve'))) {
+    return 'resolve';
+  }
+  if (message.includes('npm ERR!') || isNetworkMessage(message)) return 'network';
+  if (err.errors?.length > 0) return 'build';
+  return 'unknown';
+}

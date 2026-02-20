@@ -46,6 +46,21 @@ Drop any `.tsx` file into Terrarium and it renders instantly as a standalone app
 
 ## Install
 
+### Homebrew (recommended)
+
+```bash
+brew tap michellemayes/terrarium
+brew install --cask terrarium
+```
+
+To update:
+
+```bash
+brew upgrade terrarium
+```
+
+### Manual install
+
 Download the latest `.dmg` from [**Releases**](https://github.com/michellemayes/terrarium/releases), open it, and drag Terrarium to Applications.
 
 To use from the command line, add this to your `~/.zshrc`:

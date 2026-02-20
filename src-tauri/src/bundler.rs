@@ -7,7 +7,7 @@ pub fn cache_dir() -> PathBuf {
         .join(".terrarium")
 }
 
-fn find_node() -> Result<PathBuf, String> {
+pub fn find_node() -> Result<PathBuf, String> {
     let home = dirs::home_dir().unwrap_or_default();
 
     // Direct paths: Homebrew (Apple Silicon + Intel), official installer
@@ -79,6 +79,24 @@ fn find_node_via_shell() -> Option<PathBuf> {
         .then(|| String::from_utf8_lossy(&output.stdout).trim().to_string())
         .filter(|p| !p.is_empty())
         .map(PathBuf::from)
+}
+
+pub fn check_node_availability() -> Result<(String, String), String> {
+    let node = find_node()?;
+    let version = node_version(&node)?;
+    Ok((node.to_string_lossy().to_string(), version))
+}
+
+fn node_version(node_path: &Path) -> Result<String, String> {
+    let output = std::process::Command::new(node_path)
+        .arg("--version")
+        .output()
+        .map_err(|e| format!("Failed to run node: {e}"))?;
+    if !output.status.success() {
+        return Err("Could not determine Node.js version".to_string());
+    }
+    let version = String::from_utf8_lossy(&output.stdout).trim().to_string();
+    Ok(version)
 }
 
 pub fn bundler_script_path<R: tauri::Runtime>(
@@ -164,5 +182,17 @@ mod tests {
         let dir = cache_dir();
         assert!(dir.to_string_lossy().contains(".terrarium"));
         assert!(dir.is_absolute());
+    }
+
+    #[test]
+    fn check_node_availability_returns_version() {
+        // This test requires Node.js to be installed on the machine.
+        if find_node().is_ok() {
+            let result = check_node_availability();
+            assert!(result.is_ok());
+            let (path, version) = result.unwrap();
+            assert!(!path.is_empty());
+            assert!(version.starts_with('v'));
+        }
     }
 }

@@ -112,6 +112,14 @@ describe('bundler.mjs', () => {
       }
     });
 
+    it('includes error type in JSON error output', () => {
+      const result = runBundlerRaw('syntax-error.tsx');
+      const parsed = JSON.parse(result.stdout);
+      expect(parsed.error).toBe(true);
+      expect(parsed.type).toBeTruthy();
+      expect(['syntax', 'resolve', 'build', 'unknown', 'network']).toContain(parsed.type);
+    });
+
     it('exits with non-zero when no file argument provided', () => {
       try {
         execFileSync('node', [BUNDLER], { encoding: 'utf-8' });
@@ -135,5 +143,22 @@ describe('bundler.mjs', () => {
       expect(fs.existsSync(path.join(nodeModules, 'react'))).toBe(true);
       expect(fs.existsSync(path.join(nodeModules, 'react-dom'))).toBe(true);
     });
+  });
+
+  describe('network error handling', () => {
+    it('produces a network error type when npm install fails', () => {
+      const result = runBundlerRaw('with-external-dep.tsx', {
+        npm_config_registry: 'http://localhost:1',
+        npm_config_fetch_retries: '0',
+        npm_config_fetch_retry_mintimeout: '250',
+        npm_config_fetch_retry_maxtimeout: '250',
+        npm_config_fetch_timeout: '1000',
+        TERRARIUM_CACHE_DIR: path.join(os.tmpdir(), 'terrarium-net-test-' + Date.now()),
+      });
+      expect(result.exitCode).not.toBe(0);
+      const parsed = JSON.parse(result.stdout);
+      expect(parsed.type).toBe('network');
+      expect(parsed.message).toContain('Network error: could not install');
+    }, 130000);
   });
 });
