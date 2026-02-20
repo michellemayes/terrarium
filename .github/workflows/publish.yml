@@ -139,3 +139,16 @@ jobs:
           git add homebrew/terrarium.rb
           git diff --cached --quiet || git commit -m "chore: update Homebrew formula to ${GITHUB_REF_NAME}"
           git push
+
+  release-notes:
+    needs: publish
+    runs-on: ubuntu-latest
+    env:
+      GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      RELEASE_TAG: ${{ github.ref_name }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Add auto-generated release notes
+        run: gh release edit "$RELEASE_TAG" --generate-notes
