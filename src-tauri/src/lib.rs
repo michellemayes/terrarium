@@ -39,6 +39,8 @@ async fn open_file(
 
     let bundle_result = bundler::bundle_tsx(&app, &tsx_path).await;
 
+    recent::record_recent(&path);
+
     let watcher = watcher::watch_file(app.clone(), tsx_path.clone(), label.clone()).ok();
 
     state
@@ -241,6 +243,14 @@ fn mark_first_run_complete() -> Result<(), String> {
     Ok(())
 }
 
+#[tauri::command]
+fn get_recent_files() -> Vec<recent::RecentFile> {
+    recent::read_recent()
+        .into_iter()
+        .filter(|e| std::path::Path::new(&e.path).exists())
+        .collect()
+}
+
 pub fn run() {
     tauri::Builder::default()
         .plugin(tauri_plugin_opener::init())
@@ -259,6 +269,7 @@ pub fn run() {
             check_node,
             is_first_run,
             mark_first_run_complete,
+            get_recent_files,
         ])
         .menu(|handle| {
             let open_item = tauri::menu::MenuItemBuilder::with_id("open-file", "Open...")
