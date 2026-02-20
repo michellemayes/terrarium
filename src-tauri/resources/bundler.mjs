@@ -19,10 +19,27 @@ export function ensureCacheDir() {
 export function installPackages(packages) {
   if (packages.length === 0) return;
   console.error(`[terrarium] Installing: ${packages.join(' ')}`);
-  execFileSync('npm', ['install', '--prefix', CACHE_DIR, ...packages], {
-    stdio: ['pipe', 'pipe', 'inherit'],
-    timeout: 120000
-  });
+  try {
+    execFileSync('npm', ['install', '--prefix', CACHE_DIR, ...packages], {
+      stdio: ['pipe', 'pipe', 'pipe'],
+      encoding: 'utf-8',
+      timeout: 120000
+    });
+  } catch (err) {
+    const msg = String(err.stderr || err.stdout || err.message || '');
+    if (
+      msg.includes('ENOTFOUND')
+      || msg.includes('ENETUNREACH')
+      || msg.includes('ETIMEDOUT')
+      || msg.includes('EAI_AGAIN')
+      || msg.includes('ECONNREFUSED')
+    ) {
+      const networkErr = new Error(`Network error: could not install ${packages.join(', ')}. Check your internet connection.`);
+      networkErr.type = 'network';
+      throw networkErr;
+    }
+    throw err;
+  }
 }
 
 function packageName(specifier) {
@@ -132,15 +149,19 @@ bundle(inputFile)
   })
   .catch(err => {
     let type = 'unknown';
-    const msg = err.message || '';
-    if (err.errors?.some(e => e.text?.includes('Expected'))) {
-      type = 'syntax';
-    } else if (msg.includes('Could not resolve') || err.errors?.some(e => e.text?.includes('Could not resolve'))) {
-      type = 'resolve';
-    } else if (msg.includes('ENOTFOUND') || msg.includes('ENETUNREACH') || msg.includes('npm ERR!')) {
-      type = 'network';
-    } else if (err.errors?.length > 0) {
-      type = 'build';
+    if (err.type) {
+      type = err.type;
+    } else {
+      const msg = err.message || '';
+      if (err.errors?.some(e => e.text?.includes('Expected'))) {
+        type = 'syntax';
+      } else if (msg.includes('Could not resolve') || err.errors?.some(e => e.text?.includes('Could not resolve'))) {
+        type = 'resolve';
+      } else if (msg.includes('ENOTFOUND') || msg.includes('ENETUNREACH') || msg.includes('npm ERR!')) {
+        type = 'network';
+      } else if (err.errors?.length > 0) {
+        type = 'build';
+      }
     }
     const errorPayload = JSON.stringify({
       error: true,

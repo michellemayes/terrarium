@@ -144,4 +144,21 @@ describe('bundler.mjs', () => {
       expect(fs.existsSync(path.join(nodeModules, 'react-dom'))).toBe(true);
     });
   });
+
+  describe('network error handling', () => {
+    it('produces a network error type when npm install fails', () => {
+      const result = runBundlerRaw('with-external-dep.tsx', {
+        npm_config_registry: 'http://localhost:1',
+        npm_config_fetch_retries: '0',
+        npm_config_fetch_retry_mintimeout: '250',
+        npm_config_fetch_retry_maxtimeout: '250',
+        npm_config_fetch_timeout: '1000',
+        TERRARIUM_CACHE_DIR: path.join(os.tmpdir(), 'terrarium-net-test-' + Date.now()),
+      });
+      expect(result.exitCode).not.toBe(0);
+      const parsed = JSON.parse(result.stdout);
+      expect(parsed.type).toBe('network');
+      expect(parsed.message).toContain('Network error: could not install');
+    }, 130000);
+  });
 });
