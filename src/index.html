@@ -304,9 +304,9 @@
       gap: 8px;
     }
     .watering-can {
-      width: 48px;
-      height: 48px;
-      opacity: 0.5;
+      width: 56px;
+      height: 56px;
+      opacity: 0.6;
     }
     .empty-hint {
       font-size: 11px;
@@ -373,18 +373,19 @@
         <div id="shelf-line"></div>
       </div>
       <div id="plant-empty" style="display: none;">
-        <svg class="watering-can" viewBox="0 0 64 64" xmlns="http://www.w3.org/2000/svg">
+        <svg class="watering-can" viewBox="0 0 511.993 511.993" xmlns="http://www.w3.org/2000/svg">
+          <!-- Spout arm and handle -->
+          <path style="fill:#a78bfa;" d="M151.279,295.741L38.787,183.248c-3.172-3.172-4.919-7.424-4.919-11.974 c0-4.55,1.746-8.804,4.919-11.975c3.302-3.302,7.637-4.952,11.975-4.952c4.335,0,8.674,1.651,11.974,4.952l88.543,88.543v-47.897 l-64.595-64.595c-19.807-19.807-52.038-19.807-71.846,0C5.27,144.92,0,157.679,0,171.275c0,13.596,5.27,26.354,14.839,35.922 l136.44,136.441V295.741z"/>
+          <!-- Spout nozzle -->
+          <polygon style="fill:#a78bfa;" points="446.791,162.197 211.496,357.976 293.62,440.099 489.399,204.805"/>
+          <!-- Spout connector -->
+          <rect x="394.023" y="178.536" transform="matrix(-0.7071 -0.7071 0.7071 -0.7071 640.4173 656.2094)" style="fill:#8b5cf6;" width="124.183" height="33.868"/>
+          <!-- Can body left -->
+          <polygon style="fill:#7c3aed;" points="252.884,168.504 99.971,168.504 87.21,462.03 252.884,462.03"/>
+          <!-- Can body right -->
+          <polygon style="fill:#6d28d9;" points="206.597,462.03 325.793,462.03 313.03,168.504 206.597,168.504"/>
           <!-- Handle -->
-          <path d="M 18 18 Q 18 10 26 10 L 34 10 Q 42 10 42 18" fill="none" stroke="#a78bfa" stroke-width="3" stroke-linecap="round"/>
-          <!-- Body -->
-          <rect x="14" y="22" width="32" height="24" rx="4" fill="#2d1854" stroke="#a78bfa" stroke-width="2"/>
-          <!-- Spout -->
-          <path d="M 46 28 L 58 20 L 58 24 L 46 32 Z" fill="#2d1854" stroke="#a78bfa" stroke-width="2" stroke-linejoin="round"/>
-          <!-- Water drops -->
-          <ellipse cx="58" cy="28" rx="2" ry="3" fill="#c4b5fd" opacity="0.6"/>
-          <ellipse cx="55" cy="33" rx="1.5" ry="2.5" fill="#c4b5fd" opacity="0.4"/>
-          <!-- Sparkle -->
-          <path transform="translate(52, 14)" d="M 0 -5 L 1.2 -1.2 L 5 0 L 1.2 1.2 L 0 5 L -1.2 1.2 L -5 0 L -1.2 -1.2 Z" fill="#ff8ad0" opacity="0.8"/>
+          <rect x="189.561" y="49.964" style="fill:#a78bfa;" width="33.868" height="225.789"/>
         </svg>
         <span class="empty-hint">Your garden awaits</span>
       </div>
