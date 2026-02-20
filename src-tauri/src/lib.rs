@@ -134,6 +134,13 @@ async fn request_bundle(
     bundler::bundle_tsx(&app, &path).await
 }
 
+fn tsx_paths_from_urls(urls: &[tauri::Url]) -> Vec<PathBuf> {
+    urls.iter()
+        .filter(|u| u.scheme() == "file" && u.path().ends_with(".tsx"))
+        .filter_map(|u| u.to_file_path().ok())
+        .collect()
+}
+
 fn next_label(state: &AppState) -> String {
     let mut id = state.next_window_id.lock().unwrap();
     let label = format!("window-{}", *id);
@@ -432,19 +439,32 @@ pub fn run() {
         .expect("error while building tauri application")
         .run(|app, event| {
             if let tauri::RunEvent::Opened { urls } = event {
-                let tsx_paths: Vec<PathBuf> = urls
-                    .iter()
-                    .filter(|u| u.scheme() == "file" && u.path().ends_with(".tsx"))
-                    .filter_map(|u| u.to_file_path().ok())
-                    .collect();
-
+                let tsx_paths = tsx_paths_from_urls(&urls);
                 if tsx_paths.is_empty() {
                     return;
                 }
 
                 let state = app.state::<AppState>();
+                let mut iter = tsx_paths.into_iter();
 
-                for tsx_path in tsx_paths {
+                // Reuse the main window if it has no file loaded
+                let main_is_empty = state
+                    .windows
+                    .lock()
+                    .map(|w| !w.contains_key("main"))
+                    .unwrap_or(false);
+
+                if main_is_empty {
+                    if let Some(tsx_path) = iter.next() {
+                        if let Some(window) = app.get_webview_window("main") {
+                            let name = tsx_path.file_name().unwrap_or_default().to_string_lossy();
+                            let _ = window.set_title(&format!("{name} — Terrarium"));
+                        }
+                        spawn_bundle_and_watch(app.clone(), tsx_path, "main".to_string());
+                    }
+                }
+
+                for tsx_path in iter {
                     let label = next_label(&state);
                     if let Ok(window) = create_window(app, &label) {
                         let filename = tsx_path.file_name().unwrap_or_default().to_string_lossy();
@@ -508,5 +528,33 @@ mod tests {
         assert_eq!(next_label(&state), "window-2");
         assert_eq!(next_label(&state), "window-3");
         assert_eq!(next_label(&state), "window-4");
+    }
+
+    #[test]
+    fn tsx_paths_from_urls_filters_tsx_files() {
+        let urls: Vec<tauri::Url> = vec![
+            "file:///tmp/hello.tsx".parse().unwrap(),
+            "file:///tmp/readme.md".parse().unwrap(),
+            "file:///tmp/app.tsx".parse().unwrap(),
+            "https://example.com/foo.tsx".parse().unwrap(),
+        ];
+        let paths = tsx_paths_from_urls(&urls);
+        assert_eq!(paths.len(), 2);
+        assert_eq!(paths[0], PathBuf::from("/tmp/hello.tsx"));
+        assert_eq!(paths[1], PathBuf::from("/tmp/app.tsx"));
+    }
+
+    #[test]
+    fn tsx_paths_from_urls_returns_empty_for_no_tsx() {
+        let urls: Vec<tauri::Url> = vec![
+            "file:///tmp/readme.md".parse().unwrap(),
+            "https://example.com/foo.tsx".parse().unwrap(),
+        ];
+        assert!(tsx_paths_from_urls(&urls).is_empty());
+    }
+
+    #[test]
+    fn tsx_paths_from_urls_handles_empty_input() {
+        assert!(tsx_paths_from_urls(&[]).is_empty());
     }
 }
