@@ -7,6 +7,9 @@ static BUNDLER_PATH_INIT: OnceLock<()> = OnceLock::new();
 fn set_bundler_path() {
     BUNDLER_PATH_INIT.get_or_init(|| {
         let bundler = format!("{}/resources/bundler.mjs", env!("CARGO_MANIFEST_DIR"));
+        // SAFETY: OnceLock guarantees this runs exactly once. All three tests set
+        // the same value, so even if a test thread reads concurrently, the result
+        // is correct.
         unsafe {
             std::env::set_var("TERRARIUM_BUNDLER_PATH", &bundler);
         }
@@ -79,10 +82,9 @@ async fn watcher_triggers_rebundle_on_file_change() {
     let _watcher =
         terrarium_lib::watcher::watch_file(handle.clone(), file.clone()).expect("watch_file failed");
 
-    // Wait for watcher to initialize
+    // Heuristic: give the OS file watcher time to register. 1s is generous for
+    // local dev; on a heavily loaded CI runner this could still be insufficient.
     tokio::time::sleep(Duration::from_millis(1000)).await;
-
-    // Modify the file — triggers a rebundle
     std::fs::write(
         &file,
         r#"export default function V2() { return <div>v2</div>; }"#,
@@ -147,7 +149,7 @@ async fn watcher_emits_error_on_invalid_tsx() {
     let _watcher =
         terrarium_lib::watcher::watch_file(handle.clone(), file.clone()).expect("watch_file failed");
 
-    // Wait for watcher to initialize
+    // Heuristic: give the OS file watcher time to register.
     tokio::time::sleep(Duration::from_millis(1000)).await;
 
     std::fs::write(&file, "this is not valid tsx {{{").unwrap();
