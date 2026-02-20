@@ -83,6 +83,9 @@ fn find_node_via_shell() -> Option<PathBuf> {
 }
 
 pub fn bundler_script_path(app_handle: &tauri::AppHandle) -> Result<PathBuf, String> {
+    if let Ok(path) = std::env::var("TERRARIUM_BUNDLER_PATH") {
+        return Ok(PathBuf::from(path));
+    }
     use tauri::Manager;
     app_handle
         .path()
