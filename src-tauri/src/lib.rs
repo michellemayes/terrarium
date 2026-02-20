@@ -167,6 +167,8 @@ fn spawn_bundle_and_watch(app: tauri::AppHandle, path: PathBuf, label: String) {
         match bundler::bundle_tsx(&app, &path).await {
             Ok(bundle) => {
                 if let Some(w) = app.get_webview_window(&label) {
+                    let filename = path.file_name().unwrap_or_default().to_string_lossy();
+                    let _ = w.set_title(&format!("{filename} — Terrarium"));
                     let _ = w.emit("bundle-ready", bundle);
                 }
             }
@@ -414,15 +416,19 @@ pub fn run() {
                 let state = app.state::<AppState>();
                 let mut iter = tsx_paths.into_iter();
 
-                // Reuse the main window if it exists and has no file loaded
-                let main_available = app.get_webview_window("main").is_some()
-                    && !state
-                        .windows
-                        .lock()
-                        .map(|w| w.contains_key("main"))
-                        .unwrap_or(false);
+                // Claim the "main" window for the first file if it has no file loaded.
+                // On macOS cold start, RunEvent::Opened fires before the window is
+                // registered in the runtime, so we intentionally do NOT check
+                // get_webview_window("main") here. We only check state: if "main"
+                // has no file yet, we reserve it. The frontend's request_bundle
+                // call will find the file in state when the webview loads.
+                let main_has_no_file = !state
+                    .windows
+                    .lock()
+                    .map(|w| w.contains_key("main"))
+                    .unwrap_or(true);
 
-                if main_available {
+                if main_has_no_file {
                     if let Some(tsx_path) = iter.next() {
                         // Insert into state immediately so the frontend's
                         // request_bundle call can find the file on page load.
