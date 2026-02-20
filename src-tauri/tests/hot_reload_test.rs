@@ -1,13 +1,17 @@
-use std::sync::{Arc, Mutex};
+use std::sync::{Arc, Mutex, OnceLock};
 use std::time::Duration;
 use tauri::Listener;
 
+static BUNDLER_PATH_INIT: OnceLock<()> = OnceLock::new();
+
 /// Helper: set TERRARIUM_BUNDLER_PATH to the real bundler.mjs in this repo.
 fn set_bundler_path() {
-    let bundler = format!("{}/resources/bundler.mjs", env!("CARGO_MANIFEST_DIR"));
-    unsafe {
-        std::env::set_var("TERRARIUM_BUNDLER_PATH", &bundler);
-    }
+    BUNDLER_PATH_INIT.get_or_init(|| {
+        let bundler = format!("{}/resources/bundler.mjs", env!("CARGO_MANIFEST_DIR"));
+        unsafe {
+            std::env::set_var("TERRARIUM_BUNDLER_PATH", &bundler);
+        }
+    });
 }
 
 /// Helper: create a mock Tauri app for testing.
@@ -17,7 +21,7 @@ fn mock_app() -> tauri::App<tauri::test::MockRuntime> {
         .expect("failed to build mock Tauri app")
 }
 
-#[tokio::test]
+#[tokio::test(flavor = "multi_thread")]
 async fn bundler_produces_valid_output() {
     set_bundler_path();
 
@@ -25,7 +29,8 @@ async fn bundler_produces_valid_output() {
     let handle = app.handle();
 
     let dir = tempfile::TempDir::new().unwrap();
-    let file = dir.path().join("test.tsx");
+    let dir_path = dir.path().canonicalize().unwrap();
+    let file = dir_path.join("test.tsx");
     std::fs::write(&file, r#"export default function Hello() { return <div>hello</div>; }"#)
         .unwrap();
 
@@ -79,7 +84,7 @@ async fn watcher_triggers_rebundle_on_file_change() {
         terrarium_lib::watcher::watch_file(handle.clone(), file.clone()).expect("watch_file failed");
 
     // Wait for watcher to initialize
-    tokio::time::sleep(Duration::from_millis(500)).await;
+    tokio::time::sleep(Duration::from_millis(1000)).await;
 
     // Modify the file — this should trigger a rebundle
     std::fs::write(
@@ -103,8 +108,9 @@ async fn watcher_triggers_rebundle_on_file_change() {
         }
     }
 
-    let events = received.lock().unwrap();
-    assert!(!events.is_empty(), "Expected at least one bundle-ready event, but got errors: {:?}", errors.lock().unwrap());
+    let events: Vec<String> = received.lock().unwrap().clone();
+    let error_events: Vec<String> = errors.lock().unwrap().clone();
+    assert!(!events.is_empty(), "Expected at least one bundle-ready event, but got errors: {:?}", error_events);
     assert!(
         !events[0].is_empty(),
         "bundle-ready payload should not be empty"
@@ -148,7 +154,7 @@ async fn watcher_emits_error_on_invalid_tsx() {
         terrarium_lib::watcher::watch_file(handle.clone(), file.clone()).expect("watch_file failed");
 
     // Wait for watcher to initialize
-    tokio::time::sleep(Duration::from_millis(500)).await;
+    tokio::time::sleep(Duration::from_millis(1000)).await;
 
     // Write invalid syntax
     std::fs::write(&file, "this is not valid tsx {{{").unwrap();
@@ -165,10 +171,11 @@ async fn watcher_emits_error_on_invalid_tsx() {
         }
     }
 
-    let error_events = errors.lock().unwrap();
+    let error_events: Vec<String> = errors.lock().unwrap().clone();
+    let ready_events: Vec<String> = ready.lock().unwrap().clone();
     assert!(
         !error_events.is_empty(),
         "Expected at least one bundle-error event, got ready events: {:?}",
-        ready.lock().unwrap()
+        ready_events
     );
 }
