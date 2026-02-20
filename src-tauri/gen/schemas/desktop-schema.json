@@ -345,24 +345,6 @@
       "description": "Permission identifier",
       "oneOf": [
         {
-          "description": "Allows reading the CLI matches\n#### This default permission set includes:\n\n- `allow-cli-matches`",
-          "type": "string",
-          "const": "cli:default",
-          "markdownDescription": "Allows reading the CLI matches\n#### This default permission set includes:\n\n- `allow-cli-matches`"
-        },
-        {
-          "description": "Enables the cli_matches command without any pre-configured scope.",
-          "type": "string",
-          "const": "cli:allow-cli-matches",
-          "markdownDescription": "Enables the cli_matches command without any pre-configured scope."
-        },
-        {
-          "description": "Denies the cli_matches command without any pre-configured scope.",
-          "type": "string",
-          "const": "cli:deny-cli-matches",
-          "markdownDescription": "Denies the cli_matches command without any pre-configured scope."
-        },
-        {
           "description": "Default core plugins set.\n#### This default permission set includes:\n\n- `core:path:default`\n- `core:event:default`\n- `core:window:default`\n- `core:webview:default`\n- `core:app:default`\n- `core:image:default`\n- `core:resources:default`\n- `core:menu:default`\n- `core:tray:default`",
           "type": "string",
           "const": "core:default",
