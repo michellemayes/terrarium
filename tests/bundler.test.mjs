@@ -112,6 +112,14 @@ describe('bundler.mjs', () => {
       }
     });
 
+    it('includes error type in JSON error output', () => {
+      const result = runBundlerRaw('syntax-error.tsx');
+      const parsed = JSON.parse(result.stdout);
+      expect(parsed.error).toBe(true);
+      expect(parsed.type).toBeTruthy();
+      expect(['syntax', 'resolve', 'build', 'unknown', 'network']).toContain(parsed.type);
+    });
+
     it('exits with non-zero when no file argument provided', () => {
       try {
         execFileSync('node', [BUNDLER], { encoding: 'utf-8' });

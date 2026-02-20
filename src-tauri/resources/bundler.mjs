@@ -131,8 +131,20 @@ bundle(inputFile)
     process.stdout.write(output);
   })
   .catch(err => {
+    let type = 'unknown';
+    const msg = err.message || '';
+    if (err.errors?.some(e => e.text?.includes('Expected'))) {
+      type = 'syntax';
+    } else if (msg.includes('Could not resolve') || err.errors?.some(e => e.text?.includes('Could not resolve'))) {
+      type = 'resolve';
+    } else if (msg.includes('ENOTFOUND') || msg.includes('ENETUNREACH') || msg.includes('npm ERR!')) {
+      type = 'network';
+    } else if (err.errors?.length > 0) {
+      type = 'build';
+    }
     const errorPayload = JSON.stringify({
       error: true,
+      type,
       message: err.message,
       errors: err.errors || []
     });
