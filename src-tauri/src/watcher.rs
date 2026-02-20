@@ -4,8 +4,8 @@ use std::sync::mpsc;
 use std::time::{Duration, Instant};
 use tauri::Emitter;
 
-pub fn watch_file(
-    app_handle: tauri::AppHandle,
+pub fn watch_file<R: tauri::Runtime>(
+    app_handle: tauri::AppHandle<R>,
     path: PathBuf,
 ) -> Result<RecommendedWatcher, String> {
     let (tx, rx) = mpsc::channel();

@@ -25,6 +25,8 @@ jobs:
         run: cd src-tauri && cargo fmt --check
       - name: Clippy
         run: cd src-tauri && cargo clippy -- -D warnings
+      - name: Pre-install bundler dependencies
+        run: npm install --prefix ~/.terrarium react react-dom esbuild
       - name: Run tests
         run: cd src-tauri && cargo test
 
