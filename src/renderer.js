@@ -76,6 +76,7 @@ listen('bundle-ready', (event) => {
 });
 
 listen('bundle-error', (event) => {
+  getCurrentWindow().show();
   showError(event.payload);
 });
 

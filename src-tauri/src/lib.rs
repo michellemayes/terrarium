@@ -15,6 +15,7 @@ pub struct WindowState {
 pub struct AppState {
     pub windows: Mutex<HashMap<String, WindowState>>,
     pub next_window_id: Mutex<u32>,
+    pub opening_main: Mutex<bool>,
 }
 
 #[tauri::command]
@@ -162,8 +163,19 @@ fn create_window(app: &tauri::AppHandle, label: &str) -> Result<tauri::WebviewWi
         .map_err(|e| format!("Failed to create window: {e}"))
 }
 
+fn should_emit_no_file(state: &AppState) -> bool {
+    let has_main_file = state
+        .windows
+        .lock()
+        .map(|w| w.contains_key("main"))
+        .unwrap_or(false);
+    let opening_main = state.opening_main.lock().map(|flag| *flag).unwrap_or(false);
+    !has_main_file && !opening_main
+}
+
 fn spawn_bundle_and_watch(app: tauri::AppHandle, path: PathBuf, label: String) {
     tauri::async_runtime::spawn(async move {
+        let is_main = label == "main";
         match bundler::bundle_tsx(&app, &path).await {
             Ok(bundle) => {
                 if let Some(w) = app.get_webview_window(&label) {
@@ -187,6 +199,12 @@ fn spawn_bundle_and_watch(app: tauri::AppHandle, path: PathBuf, label: String) {
                 },
             );
         };
+
+        if is_main {
+            if let Ok(mut opening_main) = state.opening_main.lock() {
+                *opening_main = false;
+            }
+        }
     });
 }
 
@@ -220,6 +238,7 @@ pub fn run() {
         .manage(AppState {
             windows: Mutex::new(HashMap::new()),
             next_window_id: Mutex::new(2),
+            opening_main: Mutex::new(false),
         })
         .invoke_handler(tauri::generate_handler![
             open_file,
@@ -366,12 +385,7 @@ pub fn run() {
             tauri::async_runtime::spawn(async move {
                 tokio::time::sleep(std::time::Duration::from_millis(200)).await;
                 let state = delayed_handle.state::<AppState>();
-                let has_file = state
-                    .windows
-                    .lock()
-                    .map(|w| w.contains_key("main"))
-                    .unwrap_or(false);
-                if !has_file {
+                if should_emit_no_file(&state) {
                     let _ = delayed_handle.emit("no-file", ());
                     if let Some(window) = delayed_handle.get_webview_window("main") {
                         let _ = window.show();
@@ -405,18 +419,21 @@ pub fn run() {
 
                 // Reuse the main window if it exists and has no file loaded
                 let main_available = app.get_webview_window("main").is_some()
-                    && state
+                    && !state
                         .windows
                         .lock()
-                        .map(|w| !w.contains_key("main"))
-                        .unwrap_or(false);
+                        .map(|w| w.contains_key("main"))
+                        .unwrap_or(false)
+                    && !state.opening_main.lock().map(|flag| *flag).unwrap_or(true);
 
                 if main_available {
                     if let Some(tsx_path) = iter.next() {
+                        if let Ok(mut opening_main) = state.opening_main.lock() {
+                            *opening_main = true;
+                        }
                         if let Some(window) = app.get_webview_window("main") {
                             let name = tsx_path.file_name().unwrap_or_default().to_string_lossy();
                             let _ = window.set_title(&format!("{name} — Terrarium"));
-                            let _ = window.show();
                         }
                         spawn_bundle_and_watch(app.clone(), tsx_path, "main".to_string());
                     }
@@ -443,6 +460,7 @@ mod tests {
         let state = AppState {
             windows: Mutex::new(HashMap::new()),
             next_window_id: Mutex::new(2),
+            opening_main: Mutex::new(false),
         };
         assert!(state.windows.lock().unwrap().is_empty());
     }
@@ -452,6 +470,7 @@ mod tests {
         let state = AppState {
             windows: Mutex::new(HashMap::new()),
             next_window_id: Mutex::new(2),
+            opening_main: Mutex::new(false),
         };
         let path = PathBuf::from("/tmp/test.tsx");
         state.windows.lock().unwrap().insert(
@@ -470,6 +489,7 @@ mod tests {
         let state = AppState {
             windows: Mutex::new(HashMap::new()),
             next_window_id: Mutex::new(2),
+            opening_main: Mutex::new(false),
         };
         let mut id = state.next_window_id.lock().unwrap();
         assert_eq!(*id, 2);
@@ -482,6 +502,7 @@ mod tests {
         let state = AppState {
             windows: Mutex::new(HashMap::new()),
             next_window_id: Mutex::new(2),
+            opening_main: Mutex::new(false),
         };
         assert_eq!(next_label(&state), "window-2");
         assert_eq!(next_label(&state), "window-3");
@@ -526,5 +547,25 @@ mod tests {
         assert_eq!(paths.len(), 2);
         assert_eq!(paths[0], PathBuf::from("/tmp/App.TSX"));
         assert_eq!(paths[1], PathBuf::from("/tmp/Page.Tsx"));
+    }
+
+    #[test]
+    fn should_emit_no_file_when_main_is_not_loaded_or_opening() {
+        let state = AppState {
+            windows: Mutex::new(HashMap::new()),
+            next_window_id: Mutex::new(2),
+            opening_main: Mutex::new(false),
+        };
+        assert!(should_emit_no_file(&state));
+    }
+
+    #[test]
+    fn should_not_emit_no_file_while_main_is_opening() {
+        let state = AppState {
+            windows: Mutex::new(HashMap::new()),
+            next_window_id: Mutex::new(2),
+            opening_main: Mutex::new(true),
+        };
+        assert!(!should_emit_no_file(&state));
     }
 }
