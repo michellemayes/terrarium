@@ -126,7 +126,11 @@ listen('tauri://drag-leave', () => {
 });
 
 invoke('request_bundle')
-  .then(renderBundle)
+  .then(bundledCode => {
+    fileLoaded = true;
+    getCurrentWindow().show();
+    renderBundle(bundledCode);
+  })
   .catch(err => {
     if (err !== 'No file loaded') {
       showError(`Failed to load:\n${err}`);

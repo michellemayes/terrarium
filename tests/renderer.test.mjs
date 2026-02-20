@@ -193,6 +193,45 @@ describe('renderer', () => {
     });
   });
 
+  describe('request_bundle on load', () => {
+    it('renders and shows window when request_bundle succeeds', async () => {
+      const dom = new JSDOM(INDEX_HTML, {
+        url: 'http://localhost',
+        runScripts: 'dangerously',
+        resources: 'usable',
+      });
+      const listeners = {};
+      const showWindow = vi.fn(() => Promise.resolve());
+      const bundledCode = 'document.getElementById("root").innerHTML = "<p>loaded</p>";';
+
+      dom.window.__TAURI__ = {
+        event: {
+          listen: vi.fn((event, handler) => {
+            listeners[event] = listeners[event] || [];
+            listeners[event].push(handler);
+            return Promise.resolve(() => {});
+          }),
+        },
+        core: {
+          invoke: vi.fn((cmd) => {
+            if (cmd === 'request_bundle') return Promise.resolve(bundledCode);
+            return Promise.reject('No file loaded');
+          }),
+        },
+        webviewWindow: {
+          getCurrentWindow: vi.fn(() => ({ show: showWindow })),
+        },
+      };
+
+      dom.window.eval(RENDERER_SRC);
+      // Let the microtask (invoke promise) resolve
+      await new Promise(r => setTimeout(r, 10));
+
+      expect(dom.window.document.getElementById('root').innerHTML).toBe('<p>loaded</p>');
+      expect(showWindow).toHaveBeenCalled();
+    });
+  });
+
   describe('open button', () => {
     it('calls pick_and_open_files on button click', () => {
       const { document, window } = createRendererEnv();
