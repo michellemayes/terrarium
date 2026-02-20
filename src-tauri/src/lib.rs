@@ -1,5 +1,5 @@
 pub mod bundler;
-mod watcher;
+pub mod watcher;
 
 use std::path::PathBuf;
 use std::sync::Mutex;
