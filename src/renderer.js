@@ -11,9 +11,12 @@ const nodeBanner = document.getElementById('node-banner');
 const nodeBannerText = document.getElementById('node-banner-text');
 const nodeBannerLink = document.getElementById('node-banner-link');
 const nodeBannerClose = document.getElementById('node-banner-close');
+const firstRunHint = document.getElementById('first-run-hint');
+const firstRunDismiss = document.getElementById('first-run-dismiss');
 
 let fileLoaded = false;
 let detailExpanded = true;
+let firstRunChecked = false;
 
 invoke('check_node')
   .then(info => {
@@ -34,6 +37,25 @@ invoke('check_node')
 if (nodeBannerClose && nodeBanner) {
   nodeBannerClose.addEventListener('click', () => {
     nodeBanner.classList.remove('visible');
+  });
+}
+
+function maybeShowFirstRunHint() {
+  if (firstRunChecked || !firstRunHint) return;
+  firstRunChecked = true;
+  invoke('is_first_run')
+    .then(isFirst => {
+      if (isFirst) {
+        firstRunHint.classList.add('visible');
+      }
+    })
+    .catch(() => {});
+}
+
+if (firstRunDismiss && firstRunHint) {
+  firstRunDismiss.addEventListener('click', () => {
+    firstRunHint.classList.remove('visible');
+    invoke('mark_first_run_complete').catch(() => {});
   });
 }
 
@@ -89,6 +111,7 @@ window.toggleError = function() {
 async function renderBundle(bundledCode) {
   try {
     hideError();
+    maybeShowFirstRunHint();
     root.innerHTML = '';
     new Function(bundledCode)();
   } catch (err) {

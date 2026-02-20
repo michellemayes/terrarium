@@ -6,7 +6,7 @@ import * as path from 'path';
 const RENDERER_SRC = fs.readFileSync(path.resolve('src/renderer.js'), 'utf-8');
 const INDEX_HTML = fs.readFileSync(path.resolve('src/index.html'), 'utf-8');
 
-function createRendererEnv() {
+function createRendererEnv(invokeImpl) {
   const dom = new JSDOM(INDEX_HTML, {
     url: 'http://localhost',
     runScripts: 'dangerously',
@@ -25,7 +25,12 @@ function createRendererEnv() {
       }),
     },
     core: {
-      invoke: vi.fn(() => Promise.reject('No file loaded')),
+      invoke: vi.fn((command, payload) => {
+        if (invokeImpl) {
+          return invokeImpl(command, payload);
+        }
+        return Promise.reject('No file loaded');
+      }),
     },
   };
 
@@ -41,6 +46,45 @@ function createRendererEnv() {
 }
 
 describe('renderer', () => {
+  describe('first-run hint', () => {
+    it('has a first-run-hint element with expected structure', () => {
+      const dom = new JSDOM(INDEX_HTML);
+      const hint = dom.window.document.getElementById('first-run-hint');
+      expect(hint).toBeTruthy();
+      expect(hint.querySelector('#first-run-dismiss')).toBeTruthy();
+    });
+
+    it('shows first-run hint after first successful bundle when backend reports first run', async () => {
+      const { document, emit } = createRendererEnv((command) => {
+        if (command === 'check_node') return Promise.resolve({ supported: true, version: 'v20.0.0' });
+        if (command === 'request_bundle') return Promise.reject('No file loaded');
+        if (command === 'is_first_run') return Promise.resolve(true);
+        return Promise.reject('No file loaded');
+      });
+      emit('bundle-ready', 'void 0;');
+      await Promise.resolve();
+      await Promise.resolve();
+      expect(document.getElementById('first-run-hint').classList.contains('visible')).toBe(true);
+    });
+
+    it('dismisses first-run hint and marks first run complete', async () => {
+      const { document, emit, window } = createRendererEnv((command) => {
+        if (command === 'check_node') return Promise.resolve({ supported: true, version: 'v20.0.0' });
+        if (command === 'request_bundle') return Promise.reject('No file loaded');
+        if (command === 'is_first_run') return Promise.resolve(true);
+        if (command === 'mark_first_run_complete') return Promise.resolve();
+        return Promise.reject('No file loaded');
+      });
+      emit('bundle-ready', 'void 0;');
+      await Promise.resolve();
+      await Promise.resolve();
+      const dismiss = document.getElementById('first-run-dismiss');
+      dismiss.click();
+      expect(document.getElementById('first-run-hint').classList.contains('visible')).toBe(false);
+      expect(window.__TAURI__.core.invoke).toHaveBeenCalledWith('mark_first_run_complete');
+    });
+  });
+
   describe('node banner', () => {
     it('has a node-banner element with expected structure', () => {
       const dom = new JSDOM(INDEX_HTML);

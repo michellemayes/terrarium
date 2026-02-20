@@ -228,6 +228,20 @@ fn check_node() -> Result<serde_json::Value, String> {
     }))
 }
 
+#[tauri::command]
+fn is_first_run() -> bool {
+    !bundler::cache_dir().join("first-run-complete").exists()
+}
+
+#[tauri::command]
+fn mark_first_run_complete() -> Result<(), String> {
+    let cache = bundler::cache_dir();
+    let flag = cache.join("first-run-complete");
+    std::fs::create_dir_all(&cache).map_err(|e| e.to_string())?;
+    std::fs::write(&flag, "").map_err(|e| e.to_string())?;
+    Ok(())
+}
+
 pub fn run() {
     tauri::Builder::default()
         .plugin(tauri_plugin_opener::init())
@@ -245,6 +259,8 @@ pub fn run() {
             request_bundle,
             open_in_new_windows,
             check_node,
+            is_first_run,
+            mark_first_run_complete,
         ])
         .menu(|handle| {
             let open_item = tauri::menu::MenuItemBuilder::with_id("open-file", "Open...")
