@@ -14,7 +14,8 @@
         "width": 800,
         "height": 600,
         "resizable": true,
-        "dragDropEnabled": true
+        "dragDropEnabled": true,
+        "visible": false
       }
     ],
     "withGlobalTauri": true,
@@ -51,17 +52,6 @@
     "createUpdaterArtifacts": true
   },
   "plugins": {
-    "cli": {
-      "args": [
-        {
-          "name": "file",
-          "index": 1,
-          "takesValue": true,
-          "multiple": true,
-          "description": "TSX file paths to open"
-        }
-      ]
-    },
     "updater": {
       "endpoints": [
         "https://github.com/michellemayes/terrarium/releases/latest/download/latest.json"

@@ -1,5 +1,6 @@
 const { listen } = window.__TAURI__.event;
 const { invoke } = window.__TAURI__.core;
+const { getCurrentWindow } = window.__TAURI__.webviewWindow;
 
 const root = document.getElementById('root');
 const errorBanner = document.getElementById('error-banner');
@@ -70,14 +71,18 @@ if (openBtn) {
 
 listen('bundle-ready', (event) => {
   fileLoaded = true;
+  getCurrentWindow().show();
   renderBundle(event.payload);
 });
 
 listen('bundle-error', (event) => {
+  getCurrentWindow().show();
   showError(event.payload);
 });
 
-listen('no-file', () => {});
+listen('no-file', () => {
+  getCurrentWindow().show();
+});
 
 listen('install-started', () => {
   installBanner.classList.add('visible');

@@ -14,6 +14,7 @@ function createRendererEnv() {
   });
 
   const listeners = {};
+  const showWindow = vi.fn(() => Promise.resolve());
 
   // Mock Tauri APIs
   dom.window.__TAURI__ = {
@@ -27,6 +28,11 @@ function createRendererEnv() {
     core: {
       invoke: vi.fn(() => Promise.reject('No file loaded')),
     },
+    webviewWindow: {
+      getCurrentWindow: vi.fn(() => ({
+        show: showWindow,
+      })),
+    },
   };
 
   // Execute renderer.js in the JSDOM context
@@ -37,18 +43,26 @@ function createRendererEnv() {
     handlers.forEach(h => h({ payload }));
   }
 
-  return { dom, document: dom.window.document, listeners, emit, window: dom.window };
+  return {
+    dom,
+    document: dom.window.document,
+    listeners,
+    emit,
+    window: dom.window,
+    showWindow,
+  };
 }
 
 describe('renderer', () => {
   describe('showError / hideError', () => {
     it('shows error banner with message', () => {
-      const { document, emit } = createRendererEnv();
+      const { document, emit, showWindow } = createRendererEnv();
       emit('bundle-error', 'Something went wrong');
       const banner = document.getElementById('error-banner');
       const detail = document.getElementById('error-detail');
       expect(banner.classList.contains('visible')).toBe(true);
       expect(detail.textContent).toBe('Something went wrong');
+      expect(showWindow).toHaveBeenCalledTimes(1);
     });
 
     it('dims root when error is shown', () => {
@@ -83,9 +97,10 @@ describe('renderer', () => {
 
   describe('bundle rendering', () => {
     it('executes bundled code on bundle-ready', () => {
-      const { document, emit } = createRendererEnv();
+      const { document, emit, showWindow } = createRendererEnv();
       emit('bundle-ready', 'document.getElementById("root").innerHTML = "<p>hello</p>";');
       expect(document.getElementById('root').innerHTML).toBe('<p>hello</p>');
+      expect(showWindow).toHaveBeenCalledTimes(1);
     });
 
     it('shows render error if bundled code throws', () => {
@@ -94,6 +109,12 @@ describe('renderer', () => {
       const banner = document.getElementById('error-banner');
       expect(banner.classList.contains('visible')).toBe(true);
       expect(document.getElementById('error-detail').textContent).toContain('boom');
+    });
+
+    it('shows window when no-file is emitted', () => {
+      const { emit, showWindow } = createRendererEnv();
+      emit('no-file');
+      expect(showWindow).toHaveBeenCalledTimes(1);
     });
   });
 
