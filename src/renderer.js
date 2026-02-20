@@ -7,9 +7,35 @@ const errorDetail = document.getElementById('error-detail');
 const errorToggle = document.getElementById('error-toggle');
 const dropOverlay = document.getElementById('drop-overlay');
 const installBanner = document.getElementById('install-banner');
+const nodeBanner = document.getElementById('node-banner');
+const nodeBannerText = document.getElementById('node-banner-text');
+const nodeBannerLink = document.getElementById('node-banner-link');
+const nodeBannerClose = document.getElementById('node-banner-close');
 
 let fileLoaded = false;
 let detailExpanded = true;
+
+invoke('check_node')
+  .then(info => {
+    if (!info.supported && nodeBanner && nodeBannerText && nodeBannerLink) {
+      nodeBannerText.textContent = `Node.js ${info.version} found, but Terrarium needs v18+.`;
+      nodeBannerLink.href = 'https://nodejs.org';
+      nodeBanner.classList.add('visible');
+    }
+  })
+  .catch(() => {
+    if (nodeBanner && nodeBannerText && nodeBannerLink) {
+      nodeBannerText.textContent = 'Node.js not found. Terrarium needs Node.js 18+ to run.';
+      nodeBannerLink.href = 'https://nodejs.org';
+      nodeBanner.classList.add('visible');
+    }
+  });
+
+if (nodeBannerClose && nodeBanner) {
+  nodeBannerClose.addEventListener('click', () => {
+    nodeBanner.classList.remove('visible');
+  });
+}
 
 function showError(message) {
   errorDetail.textContent = message;

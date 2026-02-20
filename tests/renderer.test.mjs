@@ -41,6 +41,23 @@ function createRendererEnv() {
 }
 
 describe('renderer', () => {
+  describe('node banner', () => {
+    it('has a node-banner element with expected structure', () => {
+      const dom = new JSDOM(INDEX_HTML);
+      const banner = dom.window.document.getElementById('node-banner');
+      expect(banner).toBeTruthy();
+      expect(banner.querySelector('#node-banner-text')).toBeTruthy();
+      expect(banner.querySelector('#node-banner-link')).toBeTruthy();
+      expect(banner.querySelector('#node-banner-close')).toBeTruthy();
+    });
+
+    it('node-banner is hidden by default', () => {
+      const dom = new JSDOM(INDEX_HTML);
+      const banner = dom.window.document.getElementById('node-banner');
+      expect(banner.classList.contains('visible')).toBe(false);
+    });
+  });
+
   describe('showError / hideError', () => {
     it('shows error banner with message', () => {
       const { document, emit } = createRendererEnv();

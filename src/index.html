@@ -73,6 +73,39 @@
       border-bottom: 1px solid #7c3aed;
     }
     #install-banner.visible { display: block; }
+    #node-banner {
+      display: none;
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      background: linear-gradient(135deg, #3b1a0a, #2a1000);
+      color: #fbbf24;
+      font-size: 13px;
+      padding: 10px 20px;
+      text-align: center;
+      z-index: 10000;
+      border-bottom: 1px solid #f59e0b;
+      gap: 8px;
+      align-items: center;
+      justify-content: center;
+    }
+    #node-banner.visible { display: flex; }
+    #node-banner-icon { font-size: 16px; }
+    #node-banner-link {
+      color: #fbbf24;
+      text-decoration: underline;
+      margin-left: 4px;
+    }
+    #node-banner-close {
+      background: none;
+      border: none;
+      color: #fbbf24;
+      cursor: pointer;
+      font-size: 18px;
+      margin-left: 12px;
+      padding: 0 4px;
+    }
     @keyframes spin { to { transform: rotate(360deg); } }
     .spinner {
       display: inline-block;
@@ -212,6 +245,12 @@
     </div>
   </div>
   <div id="install-banner"><span class="spinner"></span>Installing dependencies for the first time...</div>
+  <div id="node-banner">
+    <span id="node-banner-icon">&#9888;</span>
+    <span id="node-banner-text"></span>
+    <a id="node-banner-link" href="#" target="_blank">Install Node.js</a>
+    <button id="node-banner-close">&times;</button>
+  </div>
   <div id="drop-overlay">
     <span>Drop .tsx file here</span>
     <span class="drop-sub">Release to open and render</span>
