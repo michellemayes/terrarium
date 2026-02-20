@@ -52,7 +52,6 @@ pub fn record_recent(file_path: &str) -> Vec<RecentFile> {
     let mut list = read_recent();
     let now = iso_timestamp();
 
-    // Check if the path already exists in the list.
     let existing = list.iter().position(|r| r.path == file_path);
 
     let entry = if let Some(idx) = existing {
@@ -75,21 +74,9 @@ pub fn record_recent(file_path: &str) -> Vec<RecentFile> {
         }
     };
 
-    // Insert at the front.
     list.insert(0, entry);
-
-    // Cap at MAX_RECENT entries.
     list.truncate(MAX_RECENT);
-
-    // Write to disk (best-effort).
-    let path = recent_file_path();
-    if let Some(parent) = path.parent() {
-        let _ = std::fs::create_dir_all(parent);
-    }
-    if let Ok(json) = serde_json::to_string_pretty(&list) {
-        let _ = std::fs::write(&path, json);
-    }
-
+    write_recent(&list);
     list
 }
 
@@ -109,14 +96,12 @@ fn iso_timestamp() -> String {
         .unwrap_or_default()
         .as_secs();
 
-    // Break epoch seconds into date/time components.
     let days = secs / 86400;
     let time_of_day = secs % 86400;
     let hours = time_of_day / 3600;
     let minutes = (time_of_day % 3600) / 60;
     let seconds = time_of_day % 60;
 
-    // Convert days since epoch to (year, month, day) using a civil calendar algorithm.
     let (year, month, day) = days_to_ymd(days);
 
     format!("{year:04}-{month:02}-{day:02}T{hours:02}:{minutes:02}:{seconds:02}Z")
@@ -225,9 +210,7 @@ mod tests {
         }
 
         assert_eq!(list.len(), 6);
-        // Most recent is file-6
         assert_eq!(list[0].path, "/tmp/file-6.tsx");
-        // Oldest kept is file-1 (file-0 was evicted)
         assert_eq!(list[5].path, "/tmp/file-1.tsx");
     }
 
@@ -251,7 +234,6 @@ mod tests {
             },
         ];
 
-        // Re-open b.tsx — it should move to front with same plant.
         let path = "/tmp/b.tsx";
         let existing = list.iter().position(|r| r.path == path);
         let entry = if let Some(idx) = existing {
@@ -265,7 +247,7 @@ mod tests {
         list.truncate(MAX_RECENT);
 
         assert_eq!(list[0].path, "/tmp/b.tsx");
-        assert_eq!(list[0].plant, 2); // Kept original plant index
+        assert_eq!(list[0].plant, 2);
         assert_eq!(list.len(), 3);
     }
 

@@ -2,10 +2,7 @@ use terrarium_lib::recent::RecentFile;
 
 #[test]
 fn read_recent_does_not_panic() {
-    // read_recent should return a Vec (possibly empty) without panicking,
-    // regardless of whether ~/.terrarium/recent-files.json exists.
     let list = terrarium_lib::recent::read_recent();
-    // Basic sanity: it's a valid vec.
     assert!(list.len() < 10_000, "recent list unexpectedly large");
 }
 
