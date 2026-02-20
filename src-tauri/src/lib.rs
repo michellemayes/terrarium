@@ -351,49 +351,6 @@ pub fn run() {
         .setup(|app| {
             let app_handle = app.handle().clone();
 
-            let mut cli_files: Vec<PathBuf> = Vec::new();
-            {
-                use tauri_plugin_cli::CliExt;
-                if let Ok(matches) = app.cli().matches() {
-                    if let Some(arg) = matches.args.get("file") {
-                        if let Some(arr) = arg.value.as_array() {
-                            for val in arr {
-                                if let Some(s) = val.as_str() {
-                                    if !s.is_empty() {
-                                        if let Ok(resolved) = std::fs::canonicalize(s) {
-                                            cli_files.push(resolved);
-                                        }
-                                    }
-                                }
-                            }
-                        } else if let Some(s) = arg.value.as_str() {
-                            if !s.is_empty() {
-                                if let Ok(resolved) = std::fs::canonicalize(s) {
-                                    cli_files.push(resolved);
-                                }
-                            }
-                        }
-                    }
-                }
-
-                // Fallback: check raw args for .tsx file paths
-                if cli_files.is_empty() {
-                    for arg in std::env::args().skip(1) {
-                        if arg.ends_with(".tsx") {
-                            let path = PathBuf::from(&arg);
-                            if let Ok(resolved) = std::fs::canonicalize(&path) {
-                                cli_files.push(resolved);
-                            } else {
-                                let from_parent = PathBuf::from("..").join(&path);
-                                if let Ok(resolved) = std::fs::canonicalize(&from_parent) {
-                                    cli_files.push(resolved);
-                                }
-                            }
-                        }
-                    }
-                }
-            }
-
             let update_handle = app_handle.clone();
             tauri::async_runtime::spawn(async move {
                 use tauri_plugin_updater::UpdaterExt;
@@ -404,30 +361,24 @@ pub fn run() {
                 }
             });
 
-            if cli_files.is_empty() {
-                let _ = app_handle.emit("no-file", ());
-                return Ok(());
-            }
-
-            let first_file = cli_files.remove(0);
-
-            if let Some(window) = app_handle.get_webview_window("main") {
-                let name = first_file.file_name().unwrap_or_default().to_string_lossy();
-                let _ = window.set_title(&format!("{name} — Terrarium"));
-            }
-            spawn_bundle_and_watch(app_handle.clone(), first_file, "main".to_string());
-
-            for file in cli_files {
-                let handle = app_handle.clone();
-                let state_ref = app.state::<AppState>();
-                let label = next_label(&state_ref);
-
-                if let Ok(window) = create_window(&app_handle, &label) {
-                    let filename = file.file_name().unwrap_or_default().to_string_lossy();
-                    let _ = window.set_title(&format!("{filename} — Terrarium"));
-                    spawn_bundle_and_watch(handle, file, label);
+            // Delay before showing welcome screen to give RunEvent::Opened
+            // time to deliver files from macOS file associations.
+            let delayed_handle = app_handle.clone();
+            tauri::async_runtime::spawn(async move {
+                tokio::time::sleep(std::time::Duration::from_millis(200)).await;
+                let state = delayed_handle.state::<AppState>();
+                let has_file = state
+                    .windows
+                    .lock()
+                    .map(|w| w.contains_key("main"))
+                    .unwrap_or(false);
+                if !has_file {
+                    let _ = delayed_handle.emit("no-file", ());
+                    if let Some(window) = delayed_handle.get_webview_window("main") {
+                        let _ = window.show();
+                    }
                 }
-            }
+            });
 
             Ok(())
         })
