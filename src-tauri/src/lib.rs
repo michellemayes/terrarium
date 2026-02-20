@@ -148,6 +148,11 @@ pub fn run() {
         .on_menu_event(|app, event| {
             if event.id().as_ref() == "open-file" {
                 let _ = app.emit("menu-open-file", ());
+            } else if event.id().as_ref() == "documentation" {
+                use tauri_plugin_opener::OpenerExt;
+                let _ = app
+                    .opener()
+                    .open_url("https://github.com/michellemayes/terrarium", None::<&str>);
             }
         })
         .setup(|app| {
