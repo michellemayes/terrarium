@@ -136,8 +136,14 @@ async fn request_bundle(
 
 fn tsx_paths_from_urls(urls: &[tauri::Url]) -> Vec<PathBuf> {
     urls.iter()
-        .filter(|u| u.scheme() == "file" && u.path().ends_with(".tsx"))
+        .filter(|u| u.scheme() == "file")
         .filter_map(|u| u.to_file_path().ok())
+        .filter(|p| {
+            p.extension()
+                .and_then(|e| e.to_str())
+                .map(|e| e.eq_ignore_ascii_case("tsx"))
+                .unwrap_or(false)
+        })
         .collect()
 }
 
@@ -447,14 +453,15 @@ pub fn run() {
                 let state = app.state::<AppState>();
                 let mut iter = tsx_paths.into_iter();
 
-                // Reuse the main window if it has no file loaded
-                let main_is_empty = state
-                    .windows
-                    .lock()
-                    .map(|w| !w.contains_key("main"))
-                    .unwrap_or(false);
+                // Reuse the main window if it exists and has no file loaded
+                let main_available = app.get_webview_window("main").is_some()
+                    && state
+                        .windows
+                        .lock()
+                        .map(|w| !w.contains_key("main"))
+                        .unwrap_or(false);
 
-                if main_is_empty {
+                if main_available {
                     if let Some(tsx_path) = iter.next() {
                         if let Some(window) = app.get_webview_window("main") {
                             let name = tsx_path.file_name().unwrap_or_default().to_string_lossy();
@@ -556,5 +563,17 @@ mod tests {
     #[test]
     fn tsx_paths_from_urls_handles_empty_input() {
         assert!(tsx_paths_from_urls(&[]).is_empty());
+    }
+
+    #[test]
+    fn tsx_paths_from_urls_accepts_mixed_case_extensions() {
+        let urls: Vec<tauri::Url> = vec![
+            "file:///tmp/App.TSX".parse().unwrap(),
+            "file:///tmp/Page.Tsx".parse().unwrap(),
+        ];
+        let paths = tsx_paths_from_urls(&urls);
+        assert_eq!(paths.len(), 2);
+        assert_eq!(paths[0], PathBuf::from("/tmp/App.TSX"));
+        assert_eq!(paths[1], PathBuf::from("/tmp/Page.Tsx"));
     }
 }
