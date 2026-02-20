@@ -1,19 +1,26 @@
 pub mod bundler;
 pub mod watcher;
 
+use std::collections::HashMap;
 use std::path::PathBuf;
 use std::sync::Mutex;
 use tauri::menu::{MenuBuilder, SubmenuBuilder};
 use tauri::{Emitter, Manager, State};
 
+pub struct WindowState {
+    pub file: PathBuf,
+    pub watcher: Option<notify::RecommendedWatcher>,
+}
+
 pub struct AppState {
-    pub current_file: Mutex<Option<PathBuf>>,
-    pub watcher: Mutex<Option<notify::RecommendedWatcher>>,
+    pub windows: Mutex<HashMap<String, WindowState>>,
+    pub next_window_id: Mutex<u32>,
 }
 
 #[tauri::command]
 async fn open_file(
     app: tauri::AppHandle,
+    window: tauri::Window,
     state: State<'_, AppState>,
     path: String,
 ) -> Result<String, String> {
@@ -25,31 +32,33 @@ async fn open_file(
         return Err(format!("Not a TSX file: {path}"));
     }
 
-    *state
-        .current_file
-        .lock()
-        .map_err(|_| "Internal state error".to_string())? = Some(tsx_path.clone());
-
-    if let Some(window) = app.get_webview_window("main") {
-        let filename = tsx_path.file_name().unwrap_or_default().to_string_lossy();
-        let _ = window.set_title(&format!("{filename} — Terrarium"));
-    }
+    let label = window.label().to_string();
+    let filename = tsx_path.file_name().unwrap_or_default().to_string_lossy();
+    let _ = window.set_title(&format!("{filename} — Terrarium"));
 
     let bundle_result = bundler::bundle_tsx(&app, &tsx_path).await;
 
-    if let Ok(w) = watcher::watch_file(app.clone(), tsx_path) {
-        *state
-            .watcher
-            .lock()
-            .map_err(|_| "Internal state error".to_string())? = Some(w);
-    }
+    let watcher = watcher::watch_file(app.clone(), tsx_path.clone(), label.clone()).ok();
+
+    state
+        .windows
+        .lock()
+        .map_err(|_| "Internal state error".to_string())?
+        .insert(
+            label,
+            WindowState {
+                file: tsx_path,
+                watcher,
+            },
+        );
 
     bundle_result
 }
 
 #[tauri::command]
-async fn pick_and_open_file(
+async fn pick_and_open_files(
     app: tauri::AppHandle,
+    window: tauri::Window,
     state: State<'_, AppState>,
 ) -> Result<String, String> {
     use tauri_plugin_dialog::DialogExt;
@@ -57,25 +66,136 @@ async fn pick_and_open_file(
         .dialog()
         .file()
         .add_filter("TSX Files", &["tsx"])
-        .blocking_pick_file()
-        .ok_or_else(|| "No file selected".to_string())?;
-    let path = picked.into_path().map_err(|e| format!("{e}"))?;
-    let path_str = path.to_string_lossy().to_string();
-    open_file(app, state, path_str).await
+        .blocking_pick_files();
+
+    let files = picked.ok_or_else(|| "No file selected".to_string())?;
+    if files.is_empty() {
+        return Err("No file selected".to_string());
+    }
+
+    let paths: Vec<PathBuf> = files
+        .into_iter()
+        .filter_map(|f| f.into_path().ok())
+        .collect();
+
+    if paths.is_empty() {
+        return Err("No file selected".to_string());
+    }
+
+    let label = window.label().to_string();
+    let has_file = state
+        .windows
+        .lock()
+        .map_err(|_| "Internal state error".to_string())?
+        .contains_key(&label);
+
+    let (first_file, remaining) = if has_file {
+        (None, paths)
+    } else {
+        let mut iter = paths.into_iter();
+        (iter.next(), iter.collect())
+    };
+
+    for tsx_path in &remaining {
+        if !tsx_path.exists() || tsx_path.extension().and_then(|e| e.to_str()) != Some("tsx") {
+            continue;
+        }
+        let new_label = next_label(&state);
+        let new_window = create_window(&app, &new_label)?;
+        let filename = tsx_path.file_name().unwrap_or_default().to_string_lossy();
+        let _ = new_window.set_title(&format!("{filename} — Terrarium"));
+
+        spawn_bundle_and_watch(app.clone(), tsx_path.clone(), new_label);
+    }
+
+    match first_file {
+        Some(path) => {
+            let path_str = path.to_string_lossy().to_string();
+            open_file(app, window, state, path_str).await
+        }
+        None => Err("No file selected".to_string()),
+    }
 }
 
 #[tauri::command]
 async fn request_bundle(
     app: tauri::AppHandle,
+    window: tauri::Window,
     state: State<'_, AppState>,
 ) -> Result<String, String> {
+    let label = window.label().to_string();
     let path = state
-        .current_file
+        .windows
         .lock()
         .map_err(|_| "Internal state error".to_string())?
-        .clone()
+        .get(&label)
+        .map(|ws| ws.file.clone())
         .ok_or_else(|| "No file loaded".to_string())?;
     bundler::bundle_tsx(&app, &path).await
+}
+
+fn next_label(state: &AppState) -> String {
+    let mut id = state.next_window_id.lock().unwrap();
+    let label = format!("window-{}", *id);
+    *id += 1;
+    label
+}
+
+fn create_window(app: &tauri::AppHandle, label: &str) -> Result<tauri::WebviewWindow, String> {
+    tauri::WebviewWindowBuilder::new(app, label, tauri::WebviewUrl::App("index.html".into()))
+        .title("Terrarium")
+        .inner_size(800.0, 600.0)
+        .build()
+        .map_err(|e| format!("Failed to create window: {e}"))
+}
+
+fn spawn_bundle_and_watch(app: tauri::AppHandle, path: PathBuf, label: String) {
+    tauri::async_runtime::spawn(async move {
+        match bundler::bundle_tsx(&app, &path).await {
+            Ok(bundle) => {
+                if let Some(w) = app.get_webview_window(&label) {
+                    let _ = w.emit("bundle-ready", bundle);
+                }
+            }
+            Err(err) => {
+                if let Some(w) = app.get_webview_window(&label) {
+                    let _ = w.emit("bundle-error", err);
+                }
+            }
+        }
+        let watcher = watcher::watch_file(app.clone(), path.clone(), label.clone()).ok();
+        let state = app.state::<AppState>();
+        if let Ok(mut windows) = state.windows.lock() {
+            windows.insert(
+                label,
+                WindowState {
+                    file: path,
+                    watcher,
+                },
+            );
+        };
+    });
+}
+
+#[tauri::command]
+async fn open_in_new_windows(
+    app: tauri::AppHandle,
+    state: State<'_, AppState>,
+    paths: Vec<String>,
+) -> Result<(), String> {
+    for path in paths {
+        let tsx_path = PathBuf::from(&path);
+        if !tsx_path.exists() || tsx_path.extension().and_then(|e| e.to_str()) != Some("tsx") {
+            continue;
+        }
+        let label = next_label(&state);
+        let window = create_window(&app, &label)?;
+        let filename = tsx_path.file_name().unwrap_or_default().to_string_lossy();
+        let _ = window.set_title(&format!("{filename} — Terrarium"));
+
+        spawn_bundle_and_watch(app.clone(), tsx_path, label);
+    }
+    Ok(())
 }
 
 pub fn run() {
@@ -86,13 +206,14 @@ pub fn run() {
         .plugin(tauri_plugin_updater::Builder::new().build())
         .plugin(tauri_plugin_process::init())
         .manage(AppState {
-            current_file: Mutex::new(None),
-            watcher: Mutex::new(None),
+            windows: Mutex::new(HashMap::new()),
+            next_window_id: Mutex::new(2),
         })
         .invoke_handler(tauri::generate_handler![
             open_file,
-            pick_and_open_file,
-            request_bundle
+            pick_and_open_files,
+            request_bundle,
+            open_in_new_windows,
         ])
         .menu(|handle| {
             let open_item = tauri::menu::MenuItemBuilder::with_id("open-file", "Open...")
@@ -216,45 +337,50 @@ pub fn run() {
         })
         .setup(|app| {
             let app_handle = app.handle().clone();
-            let state = app.state::<AppState>();
 
-            // Try CLI plugin first, then fall back to raw args for dev mode
-            // (tauri dev passes extra flags that the CLI plugin rejects)
+            let mut cli_files: Vec<PathBuf> = Vec::new();
             {
                 use tauri_plugin_cli::CliExt;
-                let resolved = app
-                    .cli()
-                    .matches()
-                    .ok()
-                    .and_then(|m| m.args.get("file").cloned())
-                    .and_then(|a| a.value.as_str().map(String::from))
-                    .filter(|p| !p.is_empty())
-                    .map(|path| {
-                        std::fs::canonicalize(&path).unwrap_or_else(|_| PathBuf::from(&path))
-                    })
-                    .or_else(|| {
-                        // Fallback: check raw args for a .tsx file path
-                        // In dev mode, CWD may be src-tauri/, so also try parent directory
-                        std::env::args()
-                            .skip(1)
-                            .filter(|arg| arg.ends_with(".tsx"))
-                            .find_map(|arg| {
-                                std::fs::canonicalize(&arg)
-                                    .or_else(|_| {
-                                        std::fs::canonicalize(PathBuf::from("..").join(&arg))
-                                    })
-                                    .ok()
-                            })
-                    });
+                if let Ok(matches) = app.cli().matches() {
+                    if let Some(arg) = matches.args.get("file") {
+                        if let Some(arr) = arg.value.as_array() {
+                            for val in arr {
+                                if let Some(s) = val.as_str() {
+                                    if !s.is_empty() {
+                                        if let Ok(resolved) = std::fs::canonicalize(s) {
+                                            cli_files.push(resolved);
+                                        }
+                                    }
+                                }
+                            }
+                        } else if let Some(s) = arg.value.as_str() {
+                            if !s.is_empty() {
+                                if let Ok(resolved) = std::fs::canonicalize(s) {
+                                    cli_files.push(resolved);
+                                }
+                            }
+                        }
+                    }
+                }
 
-                if let Some(path) = resolved {
-                    if let Ok(mut file) = state.current_file.lock() {
-                        *file = Some(path);
+                // Fallback: check raw args for .tsx file paths
+                if cli_files.is_empty() {
+                    for arg in std::env::args().skip(1) {
+                        if arg.ends_with(".tsx") {
+                            let path = PathBuf::from(&arg);
+                            if let Ok(resolved) = std::fs::canonicalize(&path) {
+                                cli_files.push(resolved);
+                            } else {
+                                let from_parent = PathBuf::from("..").join(&path);
+                                if let Ok(resolved) = std::fs::canonicalize(&from_parent) {
+                                    cli_files.push(resolved);
+                                }
+                            }
+                        }
                     }
                 }
             }
 
-            // Check for updates in the background (silently skips if pubkey not configured)
             let update_handle = app_handle.clone();
             tauri::async_runtime::spawn(async move {
                 use tauri_plugin_updater::UpdaterExt;
@@ -265,46 +391,42 @@ pub fn run() {
                 }
             });
 
-            let has_file = state
-                .current_file
-                .lock()
-                .map(|f| f.is_some())
-                .unwrap_or(false);
-
-            if !has_file {
+            if cli_files.is_empty() {
                 let _ = app_handle.emit("no-file", ());
                 return Ok(());
             }
 
-            let handle = app_handle.clone();
-            tauri::async_runtime::spawn(async move {
-                let state = handle.state::<AppState>();
-                let path = match state.current_file.lock().ok().and_then(|f| f.clone()) {
-                    Some(p) => p,
-                    None => return,
-                };
+            let first_file = cli_files.remove(0);
 
-                if let Some(window) = handle.get_webview_window("main") {
-                    let name = path.file_name().unwrap_or_default().to_string_lossy();
-                    let _ = window.set_title(&format!("{name} — Terrarium"));
-                }
+            if let Some(window) = app_handle.get_webview_window("main") {
+                let name = first_file.file_name().unwrap_or_default().to_string_lossy();
+                let _ = window.set_title(&format!("{name} — Terrarium"));
+            }
+            spawn_bundle_and_watch(app_handle.clone(), first_file, "main".to_string());
 
-                let (event, payload) = match bundler::bundle_tsx(&handle, &path).await {
-                    Ok(bundle) => ("bundle-ready", bundle),
-                    Err(err) => ("bundle-error", err),
-                };
-                if handle.emit(event, payload).is_err() {
-                    log::warn!("Failed to emit {event} event");
-                }
+            for file in cli_files {
+                let handle = app_handle.clone();
+                let state_ref = app.state::<AppState>();
+                let label = next_label(&state_ref);
 
-                if let Ok(w) = watcher::watch_file(handle.clone(), path) {
-                    if let Ok(mut watcher) = state.watcher.lock() {
-                        *watcher = Some(w);
-                    }
+                if let Ok(window) = create_window(&app_handle, &label) {
+                    let filename = file.file_name().unwrap_or_default().to_string_lossy();
+                    let _ = window.set_title(&format!("{filename} — Terrarium"));
+                    spawn_bundle_and_watch(handle, file, label);
                 }
-            });
+            }
 
             Ok(())
+        })
+        .on_window_event(|window, event| {
+            if let tauri::WindowEvent::Destroyed = event {
+                let app = window.app_handle();
+                let state = app.state::<AppState>();
+                let label = window.label().to_string();
+                if let Ok(mut windows) = state.windows.lock() {
+                    windows.remove(&label);
+                };
+            }
         })
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
@@ -315,22 +437,52 @@ mod tests {
     use super::*;
 
     #[test]
-    fn app_state_initializes_with_no_file() {
+    fn app_state_initializes_empty() {
         let state = AppState {
-            current_file: Mutex::new(None),
-            watcher: Mutex::new(None),
+            windows: Mutex::new(HashMap::new()),
+            next_window_id: Mutex::new(2),
         };
-        assert!(state.current_file.lock().unwrap().is_none());
+        assert!(state.windows.lock().unwrap().is_empty());
     }
 
     #[test]
-    fn app_state_stores_file_path() {
+    fn app_state_stores_window_state() {
         let state = AppState {
-            current_file: Mutex::new(None),
-            watcher: Mutex::new(None),
+            windows: Mutex::new(HashMap::new()),
+            next_window_id: Mutex::new(2),
         };
         let path = PathBuf::from("/tmp/test.tsx");
-        *state.current_file.lock().unwrap() = Some(path.clone());
-        assert_eq!(*state.current_file.lock().unwrap(), Some(path));
+        state.windows.lock().unwrap().insert(
+            "main".to_string(),
+            WindowState {
+                file: path.clone(),
+                watcher: None,
+            },
+        );
+        let windows = state.windows.lock().unwrap();
+        assert_eq!(windows.get("main").unwrap().file, path);
+    }
+
+    #[test]
+    fn next_window_id_increments() {
+        let state = AppState {
+            windows: Mutex::new(HashMap::new()),
+            next_window_id: Mutex::new(2),
+        };
+        let mut id = state.next_window_id.lock().unwrap();
+        assert_eq!(*id, 2);
+        *id += 1;
+        assert_eq!(*id, 3);
+    }
+
+    #[test]
+    fn next_label_generates_sequential_labels() {
+        let state = AppState {
+            windows: Mutex::new(HashMap::new()),
+            next_window_id: Mutex::new(2),
+        };
+        assert_eq!(next_label(&state), "window-2");
+        assert_eq!(next_label(&state), "window-3");
+        assert_eq!(next_label(&state), "window-4");
     }
 }

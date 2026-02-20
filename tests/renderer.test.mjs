@@ -137,15 +137,48 @@ describe('renderer', () => {
       emit('tauri://drag-leave');
       expect(document.getElementById('drop-overlay').classList.contains('visible')).toBe(false);
     });
+
+    it('opens all dropped tsx files in new windows when file already loaded', () => {
+      const { emit, window } = createRendererEnv();
+      // Simulate a file already being loaded
+      emit('bundle-ready', 'void 0;');
+      // Drop multiple files
+      emit('tauri://drag-drop', { paths: ['/a.tsx', '/b.tsx', '/c.tsx'] });
+      expect(window.__TAURI__.core.invoke).toHaveBeenCalledWith(
+        'open_in_new_windows',
+        { paths: ['/a.tsx', '/b.tsx', '/c.tsx'] }
+      );
+    });
+
+    it('opens first dropped file locally and rest in new windows on welcome screen', () => {
+      const { emit, window } = createRendererEnv();
+      // No file loaded yet (welcome screen)
+      emit('tauri://drag-drop', { paths: ['/a.tsx', '/b.tsx', '/c.tsx'] });
+      expect(window.__TAURI__.core.invoke).toHaveBeenCalledWith('open_file', { path: '/a.tsx' });
+      expect(window.__TAURI__.core.invoke).toHaveBeenCalledWith(
+        'open_in_new_windows',
+        { paths: ['/b.tsx', '/c.tsx'] }
+      );
+    });
+
+    it('filters non-tsx files from drop and only opens tsx files', () => {
+      const { emit, window } = createRendererEnv();
+      emit('tauri://drag-drop', { paths: ['/a.tsx', '/b.js', '/c.tsx'] });
+      expect(window.__TAURI__.core.invoke).toHaveBeenCalledWith('open_file', { path: '/a.tsx' });
+      expect(window.__TAURI__.core.invoke).toHaveBeenCalledWith(
+        'open_in_new_windows',
+        { paths: ['/c.tsx'] }
+      );
+    });
   });
 
   describe('open button', () => {
-    it('calls pick_and_open_file on button click', () => {
+    it('calls pick_and_open_files on button click', () => {
       const { document, window } = createRendererEnv();
       const btn = document.getElementById('open-btn');
       expect(btn).toBeTruthy();
       btn.click();
-      expect(window.__TAURI__.core.invoke).toHaveBeenCalledWith('pick_and_open_file');
+      expect(window.__TAURI__.core.invoke).toHaveBeenCalledWith('pick_and_open_files');
     });
   });
 });

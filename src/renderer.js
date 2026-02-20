@@ -8,6 +8,7 @@ const errorToggle = document.getElementById('error-toggle');
 const dropOverlay = document.getElementById('drop-overlay');
 const installBanner = document.getElementById('install-banner');
 
+let fileLoaded = false;
 let detailExpanded = true;
 
 function showError(message) {
@@ -41,8 +42,11 @@ async function renderBundle(bundledCode) {
 }
 
 function openFilePicker() {
-  invoke('pick_and_open_file')
-    .then(renderBundle)
+  invoke('pick_and_open_files')
+    .then(bundledCode => {
+      fileLoaded = true;
+      renderBundle(bundledCode);
+    })
     .catch(err => {
       if (err !== 'No file selected') {
         showError(`Failed to load:\n${err}`);
@@ -52,7 +56,10 @@ function openFilePicker() {
 
 function openFileByPath(filePath) {
   invoke('open_file', { path: filePath })
-    .then(renderBundle)
+    .then(bundledCode => {
+      fileLoaded = true;
+      renderBundle(bundledCode);
+    })
     .catch(err => showError(`Failed to load:\n${err}`));
 }
 
@@ -62,6 +69,7 @@ if (openBtn) {
 }
 
 listen('bundle-ready', (event) => {
+  fileLoaded = true;
   renderBundle(event.payload);
 });
 
@@ -86,12 +94,20 @@ listen('menu-open-file', () => {
 listen('tauri://drag-drop', (event) => {
   dropOverlay.classList.remove('visible');
   const paths = event.payload.paths;
-  if (paths && paths.length > 0) {
-    const tsxFile = paths.find(p => p.endsWith('.tsx'));
-    if (tsxFile) {
-      openFileByPath(tsxFile);
-    } else {
-      showError('Only .tsx files are supported');
+  if (!paths || paths.length === 0) return;
+
+  const tsxFiles = paths.filter(p => p.endsWith('.tsx'));
+  if (tsxFiles.length === 0) {
+    showError('Only .tsx files are supported');
+    return;
+  }
+
+  if (fileLoaded) {
+    invoke('open_in_new_windows', { paths: tsxFiles });
+  } else {
+    openFileByPath(tsxFiles[0]);
+    if (tsxFiles.length > 1) {
+      invoke('open_in_new_windows', { paths: tsxFiles.slice(1) });
     }
   }
 });

@@ -3,10 +3,12 @@ use std::path::PathBuf;
 use std::sync::mpsc;
 use std::time::{Duration, Instant};
 use tauri::Emitter;
+use tauri::Manager;
 
 pub fn watch_file<R: tauri::Runtime>(
     app_handle: tauri::AppHandle<R>,
     path: PathBuf,
+    window_label: String,
 ) -> Result<RecommendedWatcher, String> {
     let (tx, rx) = mpsc::channel();
 
@@ -45,12 +47,17 @@ pub fn watch_file<R: tauri::Runtime>(
 
             let app = app_handle.clone();
             let path = watched_path.clone();
+            let label = window_label.clone();
             tauri::async_runtime::spawn(async move {
-                let (event, payload) = match crate::bundler::bundle_tsx(&app, &path).await {
+                let (event_name, payload) = match crate::bundler::bundle_tsx(&app, &path).await {
                     Ok(bundle) => ("bundle-ready", bundle),
                     Err(err) => ("bundle-error", err),
                 };
-                let _ = app.emit(event, payload);
+                if let Some(window) = app.get_webview_window(&label) {
+                    let _ = window.emit(event_name, payload);
+                } else {
+                    let _ = app.emit(event_name, payload);
+                }
             });
         }
     });
