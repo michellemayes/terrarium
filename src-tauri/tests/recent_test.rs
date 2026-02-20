@@ -15,8 +15,7 @@ fn recent_file_serialization_roundtrip() {
     };
 
     let json = serde_json::to_string(&entry).expect("serialize should succeed");
-    let deserialized: RecentFile =
-        serde_json::from_str(&json).expect("deserialize should succeed");
+    let deserialized: RecentFile = serde_json::from_str(&json).expect("deserialize should succeed");
 
     assert_eq!(entry, deserialized);
 }

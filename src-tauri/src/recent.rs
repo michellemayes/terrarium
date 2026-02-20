@@ -63,7 +63,9 @@ pub fn record_recent(file_path: &str) -> Vec<RecentFile> {
         let used: std::collections::HashSet<u8> = list.iter().map(|r| r.plant).collect();
         let preferred = plant_index(file_path);
         let plant = if used.contains(&preferred) {
-            (0..NUM_PLANT_TYPES as u8).find(|i| !used.contains(i)).unwrap_or(preferred)
+            (0..NUM_PLANT_TYPES as u8)
+                .find(|i| !used.contains(i))
+                .unwrap_or(preferred)
         } else {
             preferred
         };
