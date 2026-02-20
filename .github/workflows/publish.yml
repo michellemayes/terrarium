@@ -151,4 +151,11 @@ jobs:
         with:
           fetch-depth: 0
       - name: Add auto-generated release notes
-        run: gh release edit "$RELEASE_TAG" --generate-notes
+        run: |
+          NOTES=$(gh api \
+            --method POST \
+            -H "Accept: application/vnd.github+json" \
+            /repos/${{ github.repository }}/releases/generate-notes \
+            -f tag_name="$RELEASE_TAG" \
+            --jq '.body')
+          gh release edit "$RELEASE_TAG" --notes "$NOTES"
