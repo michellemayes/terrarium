@@ -150,9 +150,9 @@ pub fn run() {
                 let _ = app.emit("menu-open-file", ());
             } else if event.id().as_ref() == "documentation" {
                 use tauri_plugin_opener::OpenerExt;
-                let _ = app
-                    .opener()
-                    .open_url("https://github.com/michellemayes/terrarium", None::<&str>);
+                if let Err(e) = app.opener().open_url("https://github.com/michellemayes/terrarium", None::<&str>) {
+                    log::warn!("Failed to open documentation URL: {e}");
+                }
             } else if event.id().as_ref() == "check-for-updates" {
                 let handle = app.clone();
                 tauri::async_runtime::spawn(async move {
@@ -161,7 +161,8 @@ pub fn run() {
 
                     let updater = match handle.updater() {
                         Ok(u) => u,
-                        Err(_) => {
+                        Err(e) => {
+                            log::warn!("Failed to initialize updater: {e}");
                             handle
                                 .dialog()
                                 .message("Could not check for updates.")
@@ -180,13 +181,16 @@ pub fn run() {
                                 .message(msg)
                                 .title("Update Available")
                                 .kind(tauri_plugin_dialog::MessageDialogKind::Info)
+                                .buttons(tauri_plugin_dialog::MessageDialogButtons::OkCancelCustom("Download".to_string(), "Later".to_string()))
                                 .blocking_show();
                             if should_open {
                                 use tauri_plugin_opener::OpenerExt;
-                                let _ = handle.opener().open_url(
+                                if let Err(e) = handle.opener().open_url(
                                     "https://github.com/michellemayes/terrarium/releases/latest",
                                     None::<&str>,
-                                );
+                                ) {
+                                    log::warn!("Failed to open releases URL: {e}");
+                                }
                             }
                         }
                         Ok(None) => {
@@ -197,7 +201,8 @@ pub fn run() {
                                 .kind(tauri_plugin_dialog::MessageDialogKind::Info)
                                 .blocking_show();
                         }
-                        Err(_) => {
+                        Err(e) => {
+                            log::warn!("Update check failed: {e}");
                             handle
                                 .dialog()
                                 .message("Could not check for updates. Please check your internet connection.")
