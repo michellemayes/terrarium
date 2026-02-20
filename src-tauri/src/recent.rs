@@ -5,6 +5,7 @@ use std::time::{SystemTime, UNIX_EPOCH};
 use crate::bundler::cache_dir;
 
 const MAX_RECENT: usize = 6;
+const NUM_PLANT_TYPES: u32 = 6;
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 pub struct RecentFile {
@@ -14,7 +15,7 @@ pub struct RecentFile {
 }
 
 /// Returns the path to the recent-files JSON file: `~/.terrarium/recent-files.json`.
-pub fn recent_file_path() -> PathBuf {
+fn recent_file_path() -> PathBuf {
     cache_dir().join("recent-files.json")
 }
 
@@ -78,7 +79,7 @@ fn plant_index(path: &str) -> u8 {
     let hash = path
         .bytes()
         .fold(0u32, |acc, b| acc.wrapping_mul(31).wrapping_add(b as u32));
-    (hash % 6) as u8
+    (hash % NUM_PLANT_TYPES) as u8
 }
 
 /// Produces an ISO-8601-ish UTC timestamp from `SystemTime` without pulling in
@@ -121,12 +122,6 @@ fn days_to_ymd(days: u64) -> (u64, u64, u64) {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use tempfile::TempDir;
-
-    /// Helper: override the recent file path for isolated tests.
-    /// We can't easily override `cache_dir()`, so tests that do I/O
-    /// use the real cache dir but clean up after themselves.
-
     #[test]
     fn plant_index_is_deterministic() {
         let idx1 = plant_index("/Users/alice/hello.tsx");
@@ -187,13 +182,8 @@ mod tests {
 
     #[test]
     fn record_recent_adds_and_caps() {
-        // Use a temp dir to avoid polluting the real cache.
-        let dir = TempDir::new().unwrap();
-        let _json_path = dir.path().join("recent-files.json");
-
-        // We need to write/read from a known location. Since record_recent
-        // uses the real cache_dir, we test the logic in a more unit-test
-        // fashion by directly calling the functions on data.
+        // Since record_recent uses the real cache_dir, we test the core
+        // logic in isolation by directly manipulating a list.
         let mut list: Vec<RecentFile> = Vec::new();
 
         // Simulate recording 7 files (exceeding the cap of 6).
