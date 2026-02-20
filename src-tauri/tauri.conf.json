@@ -15,7 +15,7 @@
         "height": 600,
         "resizable": true,
         "dragDropEnabled": true,
-        "visible": false
+        "visible": true
       }
     ],
     "withGlobalTauri": true,

@@ -162,14 +162,6 @@ fn create_window(app: &tauri::AppHandle, label: &str) -> Result<tauri::WebviewWi
         .map_err(|e| format!("Failed to create window: {e}"))
 }
 
-fn should_emit_no_file(state: &AppState) -> bool {
-    !state
-        .windows
-        .lock()
-        .map(|w| w.contains_key("main"))
-        .unwrap_or(false)
-}
-
 fn spawn_bundle_and_watch(app: tauri::AppHandle, path: PathBuf, label: String) {
     tauri::async_runtime::spawn(async move {
         match bundler::bundle_tsx(&app, &path).await {
@@ -398,20 +390,6 @@ pub fn run() {
                 }
             });
 
-            // Delay before showing welcome screen to give RunEvent::Opened
-            // time to deliver files from macOS file associations.
-            let delayed_handle = app_handle.clone();
-            tauri::async_runtime::spawn(async move {
-                tokio::time::sleep(std::time::Duration::from_millis(200)).await;
-                let state = delayed_handle.state::<AppState>();
-                if should_emit_no_file(&state) {
-                    let _ = delayed_handle.emit("no-file", ());
-                    if let Some(window) = delayed_handle.get_webview_window("main") {
-                        let _ = window.show();
-                    }
-                }
-            });
-
             Ok(())
         })
         .on_window_event(|window, event| {
@@ -588,30 +566,5 @@ mod tests {
         assert_eq!(paths.len(), 2);
         assert_eq!(paths[0], PathBuf::from("/tmp/App.TSX"));
         assert_eq!(paths[1], PathBuf::from("/tmp/Page.Tsx"));
-    }
-
-    #[test]
-    fn should_emit_no_file_when_main_has_no_file() {
-        let state = AppState {
-            windows: Mutex::new(HashMap::new()),
-            next_window_id: Mutex::new(2),
-        };
-        assert!(should_emit_no_file(&state));
-    }
-
-    #[test]
-    fn should_not_emit_no_file_when_main_has_file() {
-        let state = AppState {
-            windows: Mutex::new(HashMap::new()),
-            next_window_id: Mutex::new(2),
-        };
-        state.windows.lock().unwrap().insert(
-            "main".to_string(),
-            WindowState {
-                file: PathBuf::from("/tmp/test.tsx"),
-                watcher: None,
-            },
-        );
-        assert!(!should_emit_no_file(&state));
     }
 }
