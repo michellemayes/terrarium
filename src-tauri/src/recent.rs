@@ -49,9 +49,17 @@ pub fn record_recent(file_path: &str) -> Vec<RecentFile> {
         entry.opened_at = now;
         entry
     } else {
+        // Pick a plant type not already on the shelf when possible.
+        let used: std::collections::HashSet<u8> = list.iter().map(|r| r.plant).collect();
+        let preferred = plant_index(file_path);
+        let plant = if used.contains(&preferred) {
+            (0..NUM_PLANT_TYPES as u8).find(|i| !used.contains(i)).unwrap_or(preferred)
+        } else {
+            preferred
+        };
         RecentFile {
             path: file_path.to_string(),
-            plant: plant_index(file_path),
+            plant,
             opened_at: now,
         }
     };
