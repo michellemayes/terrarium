@@ -73,11 +73,12 @@ fn find_node_via_shell() -> Option<PathBuf> {
         .args(["-l", "-c", "which node"])
         .output()
         .ok()?;
-    output.status.success().then(|| {
-        String::from_utf8_lossy(&output.stdout).trim().to_string()
-    })
-    .filter(|p| !p.is_empty())
-    .map(PathBuf::from)
+    output
+        .status
+        .success()
+        .then(|| String::from_utf8_lossy(&output.stdout).trim().to_string())
+        .filter(|p| !p.is_empty())
+        .map(PathBuf::from)
 }
 
 pub fn bundler_script_path(app_handle: &tauri::AppHandle) -> Result<PathBuf, String> {

@@ -157,11 +157,14 @@ pub fn run() {
                     .or_else(|| {
                         // Fallback: check raw args for a .tsx file path
                         // In dev mode, CWD may be src-tauri/, so also try parent directory
-                        std::env::args().skip(1)
+                        std::env::args()
+                            .skip(1)
                             .filter(|arg| arg.ends_with(".tsx"))
                             .find_map(|arg| {
                                 std::fs::canonicalize(&arg)
-                                    .or_else(|_| std::fs::canonicalize(PathBuf::from("..").join(&arg)))
+                                    .or_else(|_| {
+                                        std::fs::canonicalize(PathBuf::from("..").join(&arg))
+                                    })
                                     .ok()
                             })
                     });
