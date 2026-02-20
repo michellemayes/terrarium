@@ -113,6 +113,19 @@ pub fn run() {
                 .select_all()
                 .build()?;
             let window_menu = SubmenuBuilder::new(handle, "Window").minimize().build()?;
+            let help_menu = SubmenuBuilder::new(handle, "Help")
+                .item(
+                    &tauri::menu::MenuItemBuilder::with_id("documentation", "Documentation")
+                        .build(handle)?,
+                )
+                .item(
+                    &tauri::menu::MenuItemBuilder::with_id(
+                        "check-for-updates",
+                        "Check for Updates\u{2026}",
+                    )
+                    .build(handle)?,
+                )
+                .build()?;
             let app_menu = SubmenuBuilder::new(handle, "Terrarium")
                 .about(None)
                 .separator()
@@ -129,6 +142,7 @@ pub fn run() {
                 .item(&file_menu)
                 .item(&edit_menu)
                 .item(&window_menu)
+                .item(&help_menu)
                 .build()
         })
         .on_menu_event(|app, event| {
