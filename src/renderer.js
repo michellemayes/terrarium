@@ -1,6 +1,6 @@
 const { listen } = window.__TAURI__.event;
 const { invoke } = window.__TAURI__.core;
-const { getCurrentWindow } = window.__TAURI__.webviewWindow;
+const tauriWindowNamespace = window.__TAURI__.webviewWindow || window.__TAURI__.window || {};
 
 const root = document.getElementById('root');
 const errorBanner = document.getElementById('error-banner');
@@ -19,6 +19,17 @@ const NODEJS_URL = 'https://nodejs.org';
 let fileLoaded = false;
 let detailExpanded = true;
 let firstRunChecked = false;
+
+function showCurrentWindow() {
+  try {
+    const getter = tauriWindowNamespace.getCurrentWindow;
+    if (typeof getter !== 'function') return;
+    const current = getter();
+    if (current && typeof current.show === 'function') {
+      current.show();
+    }
+  } catch {}
+}
 
 function showNodeBanner(message) {
   if (!nodeBanner || !nodeBannerText || !nodeBannerLink) return;
@@ -150,17 +161,17 @@ if (openBtn) {
 
 listen('bundle-ready', (event) => {
   fileLoaded = true;
-  getCurrentWindow().show();
+  showCurrentWindow();
   renderBundle(event.payload);
 });
 
 listen('bundle-error', (event) => {
-  getCurrentWindow().show();
+  showCurrentWindow();
   showError(event.payload);
 });
 
 listen('no-file', () => {
-  getCurrentWindow().show();
+  showCurrentWindow();
 });
 
 listen('install-started', () => {
@@ -207,7 +218,7 @@ listen('tauri://drag-leave', () => {
 invoke('request_bundle')
   .then(bundledCode => {
     fileLoaded = true;
-    getCurrentWindow().show();
+    showCurrentWindow();
     renderBundle(bundledCode);
   })
   .catch(err => {
