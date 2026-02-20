@@ -1,0 +1,174 @@
+use std::sync::{Arc, Mutex};
+use std::time::Duration;
+use tauri::Listener;
+
+/// Helper: set TERRARIUM_BUNDLER_PATH to the real bundler.mjs in this repo.
+fn set_bundler_path() {
+    let bundler = format!("{}/resources/bundler.mjs", env!("CARGO_MANIFEST_DIR"));
+    unsafe {
+        std::env::set_var("TERRARIUM_BUNDLER_PATH", &bundler);
+    }
+}
+
+/// Helper: create a mock Tauri app for testing.
+fn mock_app() -> tauri::App<tauri::test::MockRuntime> {
+    tauri::test::mock_builder()
+        .build(tauri::test::mock_context(tauri::test::noop_assets()))
+        .expect("failed to build mock Tauri app")
+}
+
+#[tokio::test]
+async fn bundler_produces_valid_output() {
+    set_bundler_path();
+
+    let app = mock_app();
+    let handle = app.handle();
+
+    let dir = tempfile::TempDir::new().unwrap();
+    let file = dir.path().join("test.tsx");
+    std::fs::write(&file, r#"export default function Hello() { return <div>hello</div>; }"#)
+        .unwrap();
+
+    let result = terrarium_lib::bundler::bundle_tsx(handle, &file).await;
+    assert!(result.is_ok(), "bundle_tsx failed: {:?}", result.err());
+
+    let output = result.unwrap();
+    assert!(!output.is_empty(), "bundle output should not be empty");
+    assert!(
+        !output.starts_with(r#"{"error":true"#),
+        "bundle output should not be an error: {output}"
+    );
+}
+
+#[tokio::test(flavor = "multi_thread", worker_threads = 2)]
+async fn watcher_triggers_rebundle_on_file_change() {
+    set_bundler_path();
+
+    let app = mock_app();
+    let handle = app.handle().clone();
+
+    let dir = tempfile::TempDir::new().unwrap();
+    // Canonicalize the temp dir path to resolve macOS /var -> /private/var symlink,
+    // so that notify event paths match our watched path.
+    let canon_dir = dir.path().canonicalize().unwrap();
+    let file = canon_dir.join("watch_test.tsx");
+    std::fs::write(
+        &file,
+        r#"export default function V1() { return <div>v1</div>; }"#,
+    )
+    .unwrap();
+
+    // Listen for bundle-ready events
+    let received = Arc::new(Mutex::new(Vec::<String>::new()));
+    let errors = Arc::new(Mutex::new(Vec::<String>::new()));
+
+    let received_clone = received.clone();
+    handle.listen("bundle-ready", move |event| {
+        let payload = event.payload().to_string();
+        received_clone.lock().unwrap().push(payload);
+    });
+
+    let errors_clone = errors.clone();
+    handle.listen("bundle-error", move |event| {
+        let payload = event.payload().to_string();
+        errors_clone.lock().unwrap().push(payload);
+    });
+
+    // Start watching the file
+    let _watcher =
+        terrarium_lib::watcher::watch_file(handle.clone(), file.clone()).expect("watch_file failed");
+
+    // Wait for watcher to initialize
+    tokio::time::sleep(Duration::from_millis(500)).await;
+
+    // Modify the file — this should trigger a rebundle
+    std::fs::write(
+        &file,
+        r#"export default function V2() { return <div>v2</div>; }"#,
+    )
+    .unwrap();
+
+    // Wait for debounce (300ms) + bundling (up to several seconds for Node.js)
+    let deadline = tokio::time::Instant::now() + Duration::from_secs(15);
+    loop {
+        tokio::time::sleep(Duration::from_millis(500)).await;
+        if !received.lock().unwrap().is_empty() || !errors.lock().unwrap().is_empty() {
+            break;
+        }
+        if tokio::time::Instant::now() > deadline {
+            panic!(
+                "Timed out waiting for bundle-ready event after file change. errors={:?}",
+                errors.lock().unwrap()
+            );
+        }
+    }
+
+    let events = received.lock().unwrap();
+    assert!(!events.is_empty(), "Expected at least one bundle-ready event, but got errors: {:?}", errors.lock().unwrap());
+    assert!(
+        !events[0].is_empty(),
+        "bundle-ready payload should not be empty"
+    );
+}
+
+#[tokio::test(flavor = "multi_thread", worker_threads = 2)]
+async fn watcher_emits_error_on_invalid_tsx() {
+    set_bundler_path();
+
+    let app = mock_app();
+    let handle = app.handle().clone();
+
+    let dir = tempfile::TempDir::new().unwrap();
+    // Canonicalize to resolve macOS /var -> /private/var symlink
+    let canon_dir = dir.path().canonicalize().unwrap();
+    let file = canon_dir.join("error_test.tsx");
+    std::fs::write(
+        &file,
+        r#"export default function OK() { return <div>ok</div>; }"#,
+    )
+    .unwrap();
+
+    // Listen for bundle-error events
+    let errors = Arc::new(Mutex::new(Vec::<String>::new()));
+    let errors_clone = errors.clone();
+    handle.listen("bundle-error", move |event| {
+        let payload = event.payload().to_string();
+        errors_clone.lock().unwrap().push(payload);
+    });
+
+    let ready = Arc::new(Mutex::new(Vec::<String>::new()));
+    let ready_clone = ready.clone();
+    handle.listen("bundle-ready", move |event| {
+        let payload = event.payload().to_string();
+        ready_clone.lock().unwrap().push(payload);
+    });
+
+    // Start watching
+    let _watcher =
+        terrarium_lib::watcher::watch_file(handle.clone(), file.clone()).expect("watch_file failed");
+
+    // Wait for watcher to initialize
+    tokio::time::sleep(Duration::from_millis(500)).await;
+
+    // Write invalid syntax
+    std::fs::write(&file, "this is not valid tsx {{{").unwrap();
+
+    // Wait for error event
+    let deadline = tokio::time::Instant::now() + Duration::from_secs(15);
+    loop {
+        tokio::time::sleep(Duration::from_millis(500)).await;
+        if !errors.lock().unwrap().is_empty() || !ready.lock().unwrap().is_empty() {
+            break;
+        }
+        if tokio::time::Instant::now() > deadline {
+            panic!("Timed out waiting for bundle-error event after writing invalid TSX");
+        }
+    }
+
+    let error_events = errors.lock().unwrap();
+    assert!(
+        !error_events.is_empty(),
+        "Expected at least one bundle-error event, got ready events: {:?}",
+        ready.lock().unwrap()
+    );
+}
