@@ -57,7 +57,8 @@
           "name": "file",
           "index": 1,
           "takesValue": true,
-          "description": "TSX file path to open"
+          "multiple": true,
+          "description": "TSX file paths to open"
         }
       ]
     },
