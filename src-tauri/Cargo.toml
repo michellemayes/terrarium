@@ -1,6 +1,6 @@
 [package]
 name = "terrarium"
-version = "0.2.0"
+version = "0.2.1"
 description = "A tiny terrarium for your TSX components"
 authors = ["Michelle Mayes"]
 edition = "2021"
