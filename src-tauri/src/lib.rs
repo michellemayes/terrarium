@@ -105,6 +105,16 @@ async fn pick_and_open_files(
         let filename = tsx_path.file_name().unwrap_or_default().to_string_lossy();
         let _ = new_window.set_title(&format!("{filename} — Terrarium"));
 
+        if let Ok(mut windows) = state.windows.lock() {
+            windows.insert(
+                new_label.clone(),
+                WindowState {
+                    file: tsx_path.clone(),
+                    watcher: None,
+                },
+            );
+        }
+
         spawn_bundle_and_watch(app.clone(), tsx_path.clone(), new_label);
     }
 
@@ -203,6 +213,16 @@ async fn open_in_new_windows(
         let window = create_window(&app, &label)?;
         let filename = tsx_path.file_name().unwrap_or_default().to_string_lossy();
         let _ = window.set_title(&format!("{filename} — Terrarium"));
+
+        if let Ok(mut windows) = state.windows.lock() {
+            windows.insert(
+                label.clone(),
+                WindowState {
+                    file: tsx_path.clone(),
+                    watcher: None,
+                },
+            );
+        }
 
         spawn_bundle_and_watch(app.clone(), tsx_path, label);
     }
