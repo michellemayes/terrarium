@@ -185,13 +185,11 @@ fn spawn_bundle_and_watch(app: tauri::AppHandle, path: PathBuf, label: String) {
                 if let Some(w) = app.get_webview_window(&label) {
                     let filename = path.file_name().unwrap_or_default().to_string_lossy();
                     let _ = w.set_title(&format!("{filename} — Terrarium"));
-                    let _ = w.emit("bundle-ready", bundle);
                 }
+                let _ = app.emit_to(&label, "bundle-ready", bundle);
             }
             Err(err) => {
-                if let Some(w) = app.get_webview_window(&label) {
-                    let _ = w.emit("bundle-error", err);
-                }
+                let _ = app.emit_to(&label, "bundle-error", err);
             }
         }
         let watcher = watcher::watch_file(app.clone(), path.clone(), label.clone()).ok();
