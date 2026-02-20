@@ -230,6 +230,12 @@
       color: #8b7aab;
       margin-bottom: 12px;
     }
+    #shelf-plants-wrapper {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+    }
     #shelf-plants {
       display: flex;
       justify-content: center;
@@ -238,6 +244,13 @@
       min-height: 80px;
       align-items: flex-end;
     }
+    .shelf-sparkle {
+      width: 12px;
+      height: 12px;
+      flex-shrink: 0;
+    }
+    .sparkle-left { align-self: flex-start; margin-top: 8px; }
+    .sparkle-right { align-self: flex-end; margin-bottom: 16px; }
     .plant-item {
       display: flex;
       flex-direction: column;
@@ -352,7 +365,11 @@
       <span id="drop-hint">or drag and drop a .tsx file onto the app</span>
       <div id="plant-shelf" style="display: none;">
         <div id="shelf-label">Recent</div>
-        <div id="shelf-plants"></div>
+        <div id="shelf-plants-wrapper">
+          <svg class="shelf-sparkle sparkle-left" viewBox="0 0 14 14" xmlns="http://www.w3.org/2000/svg"><path d="M 7 0 L 8.5 5.5 L 14 7 L 8.5 8.5 L 7 14 L 5.5 8.5 L 0 7 L 5.5 5.5 Z" fill="#ff8ad0" opacity="0.5"/></svg>
+          <div id="shelf-plants"></div>
+          <svg class="shelf-sparkle sparkle-right" viewBox="0 0 10 10" xmlns="http://www.w3.org/2000/svg"><path d="M 5 0 L 6.2 3.8 L 10 5 L 6.2 6.2 L 5 10 L 3.8 6.2 L 0 5 L 3.8 3.8 Z" fill="#f5b0e0" opacity="0.4"/></svg>
+        </div>
         <div id="shelf-line"></div>
       </div>
       <div id="plant-empty" style="display: none;">

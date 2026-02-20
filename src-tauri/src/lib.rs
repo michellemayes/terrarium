@@ -39,7 +39,9 @@ async fn open_file(
 
     let bundle_result = bundler::bundle_tsx(&app, &tsx_path).await;
 
-    recent::record_recent(&path);
+    if bundle_result.is_ok() {
+        recent::record_recent(&path);
+    }
 
     let watcher = watcher::watch_file(app.clone(), tsx_path.clone(), label.clone()).ok();
 
@@ -169,6 +171,7 @@ fn spawn_bundle_and_watch(app: tauri::AppHandle, path: PathBuf, label: String) {
     tauri::async_runtime::spawn(async move {
         match bundler::bundle_tsx(&app, &path).await {
             Ok(bundle) => {
+                recent::record_recent(&path.to_string_lossy());
                 if let Some(w) = app.get_webview_window(&label) {
                     let filename = path.file_name().unwrap_or_default().to_string_lossy();
                     let _ = w.set_title(&format!("{filename} — Terrarium"));
