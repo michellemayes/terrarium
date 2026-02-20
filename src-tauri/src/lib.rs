@@ -417,6 +417,7 @@ pub fn run() {
                         if let Some(window) = app.get_webview_window("main") {
                             let name = tsx_path.file_name().unwrap_or_default().to_string_lossy();
                             let _ = window.set_title(&format!("{name} — Terrarium"));
+                            let _ = window.show();
                         }
                         spawn_bundle_and_watch(app.clone(), tsx_path, "main".to_string());
                     }
