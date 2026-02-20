@@ -153,6 +153,60 @@ pub fn run() {
                 let _ = app
                     .opener()
                     .open_url("https://github.com/michellemayes/terrarium", None::<&str>);
+            } else if event.id().as_ref() == "check-for-updates" {
+                let handle = app.clone();
+                tauri::async_runtime::spawn(async move {
+                    use tauri_plugin_dialog::DialogExt;
+                    use tauri_plugin_updater::UpdaterExt;
+
+                    let updater = match handle.updater() {
+                        Ok(u) => u,
+                        Err(_) => {
+                            handle
+                                .dialog()
+                                .message("Could not check for updates.")
+                                .title("Update Error")
+                                .kind(tauri_plugin_dialog::MessageDialogKind::Error)
+                                .blocking_show();
+                            return;
+                        }
+                    };
+
+                    match updater.check().await {
+                        Ok(Some(update)) => {
+                            let msg = format!("Version {} is available.", update.version);
+                            let should_open = handle
+                                .dialog()
+                                .message(msg)
+                                .title("Update Available")
+                                .kind(tauri_plugin_dialog::MessageDialogKind::Info)
+                                .blocking_show();
+                            if should_open {
+                                use tauri_plugin_opener::OpenerExt;
+                                let _ = handle.opener().open_url(
+                                    "https://github.com/michellemayes/terrarium/releases/latest",
+                                    None::<&str>,
+                                );
+                            }
+                        }
+                        Ok(None) => {
+                            handle
+                                .dialog()
+                                .message("You're running the latest version.")
+                                .title("No Updates Available")
+                                .kind(tauri_plugin_dialog::MessageDialogKind::Info)
+                                .blocking_show();
+                        }
+                        Err(_) => {
+                            handle
+                                .dialog()
+                                .message("Could not check for updates. Please check your internet connection.")
+                                .title("Update Error")
+                                .kind(tauri_plugin_dialog::MessageDialogKind::Error)
+                                .blocking_show();
+                        }
+                    }
+                });
             }
         })
         .setup(|app| {
