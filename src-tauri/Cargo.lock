@@ -4200,6 +4200,7 @@ dependencies = [
  "dirs",
  "log",
  "notify",
+ "serde",
  "serde_json",
  "tauri",
  "tauri-build",

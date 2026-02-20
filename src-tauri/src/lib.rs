@@ -1,4 +1,5 @@
 pub mod bundler;
+pub mod recent;
 pub mod watcher;
 
 use std::collections::HashMap;
@@ -37,6 +38,10 @@ async fn open_file(
     let _ = window.set_title(&format!("{filename} — Terrarium"));
 
     let bundle_result = bundler::bundle_tsx(&app, &tsx_path).await;
+
+    if bundle_result.is_ok() {
+        recent::record_recent(&path);
+    }
 
     let watcher = watcher::watch_file(app.clone(), tsx_path.clone(), label.clone()).ok();
 
@@ -176,6 +181,7 @@ fn spawn_bundle_and_watch(app: tauri::AppHandle, path: PathBuf, label: String) {
     tauri::async_runtime::spawn(async move {
         match bundler::bundle_tsx(&app, &path).await {
             Ok(bundle) => {
+                recent::record_recent(&path.to_string_lossy());
                 if let Some(w) = app.get_webview_window(&label) {
                     let filename = path.file_name().unwrap_or_default().to_string_lossy();
                     let _ = w.set_title(&format!("{filename} — Terrarium"));
@@ -260,6 +266,17 @@ fn mark_first_run_complete() -> Result<(), String> {
     Ok(())
 }
 
+#[tauri::command]
+fn get_recent_files() -> Vec<recent::RecentFile> {
+    let entries = recent::read_recent();
+    let live: Vec<recent::RecentFile> = entries
+        .into_iter()
+        .filter(|e| std::path::Path::new(&e.path).exists())
+        .collect();
+    recent::write_recent(&live);
+    live
+}
+
 pub fn run() {
     tauri::Builder::default()
         .plugin(tauri_plugin_opener::init())
@@ -278,6 +295,7 @@ pub fn run() {
             check_node,
             is_first_run,
             mark_first_run_complete,
+            get_recent_files,
         ])
         .menu(|handle| {
             let open_item = tauri::menu::MenuItemBuilder::with_id("open-file", "Open...")

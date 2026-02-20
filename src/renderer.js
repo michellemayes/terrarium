@@ -207,3 +207,60 @@ invoke('request_bundle')
       showError(`Failed to load:\n${err}`);
     }
   });
+
+// --- Plant shelf (recent files) ---
+
+const plantShelf = document.getElementById('plant-shelf');
+const shelfPlants = document.getElementById('shelf-plants');
+const plantEmpty = document.getElementById('plant-empty');
+
+function getPlantSvg(plantIndex) {
+  const template = document.querySelector(`template[data-plant="${plantIndex}"]`);
+  if (!template) return null;
+  return template.content.cloneNode(true);
+}
+
+function renderPlantShelf(recentFiles) {
+  if (!plantShelf || !shelfPlants || !plantEmpty) return;
+
+  if (recentFiles.length === 0) {
+    plantShelf.style.display = 'none';
+    plantEmpty.style.display = 'flex';
+    return;
+  }
+
+  plantEmpty.style.display = 'none';
+  plantShelf.style.display = 'block';
+  shelfPlants.innerHTML = '';
+
+  for (const file of recentFiles) {
+    const item = document.createElement('div');
+    item.className = 'plant-item';
+    item.title = file.path;
+
+    const svg = getPlantSvg(file.plant);
+    if (svg) {
+      item.appendChild(svg);
+    }
+
+    const name = document.createElement('span');
+    name.className = 'plant-name';
+    const filename = file.path.split('/').pop() || file.path;
+    name.textContent = filename.replace(/\.tsx$/, '');
+    item.appendChild(name);
+
+    item.addEventListener('click', () => {
+      openFileByPath(file.path);
+    });
+
+    shelfPlants.appendChild(item);
+  }
+}
+
+function loadPlantShelf() {
+  invoke('get_recent_files')
+    .then(files => renderPlantShelf(files))
+    .catch(() => {});
+}
+
+loadPlantShelf();
