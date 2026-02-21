@@ -1,6 +1,7 @@
 #!/usr/bin/env node
 
 import { execFileSync } from 'child_process';
+import { createRequire } from 'module';
 import * as fs from 'fs';
 import * as path from 'path';
 import * as os from 'os';
@@ -42,11 +43,31 @@ function isNetworkMessage(message) {
 }
 
 function packageName(specifier) {
-  return specifier.startsWith('@') ? specifier.split('/').slice(0, 2).join('/') : specifier.split('/')[0];
+  if (specifier.startsWith('@')) {
+    return specifier.split('/').slice(0, 2).join('/').replace(/@[^@/]+$/, '');
+  }
+  return specifier.split('/')[0].replace(/@.*$/, '');
 }
 
 export function isInstalled(pkg) {
   return fs.existsSync(path.join(NODE_MODULES, packageName(pkg)));
+}
+
+async function generateTailwindCss(contentToScan) {
+  const customRequire = createRequire(path.join(CACHE_DIR, 'package.json'));
+  const postcss = customRequire('postcss');
+  const tailwindcss = customRequire('tailwindcss');
+
+  const cssInput = '@tailwind base;\n@tailwind components;\n@tailwind utilities;';
+
+  const result = await postcss([
+    tailwindcss({
+      content: [{ raw: contentToScan, extension: 'html' }],
+      corePlugins: { preflight: true },
+    })
+  ]).process(cssInput, { from: undefined });
+
+  return result.css;
 }
 
 export async function bundle(inputFile) {
@@ -58,7 +79,7 @@ export async function bundle(inputFile) {
     throw new Error(`File not found: ${resolvedInput}`);
   }
 
-  const basePackages = ['react', 'react-dom', 'esbuild'];
+  const basePackages = ['react', 'react-dom', 'esbuild', 'postcss', 'tailwindcss@3'];
   installPackages(basePackages.filter(p => !isInstalled(p)));
 
   const esbuildPath = path.join(NODE_MODULES, 'esbuild', 'lib', 'main.js');
@@ -133,7 +154,21 @@ export async function bundle(inputFile) {
     sourcemap: false,
   });
 
-  return result.outputFiles[0].text;
+  const bundledJs = result.outputFiles[0].text;
+
+  let css = '';
+  try {
+    css = await generateTailwindCss(bundledJs);
+  } catch (err) {
+    console.error('[terrarium] Tailwind CSS generation failed, continuing without styles:', err.message);
+  }
+
+  if (css) {
+    const cssInjection = `(function(){var s=document.getElementById("terrarium-tw");if(s)s.remove();s=document.createElement("style");s.id="terrarium-tw";s.textContent=${JSON.stringify(css)};document.head.appendChild(s)})();\n`;
+    return cssInjection + bundledJs;
+  }
+
+  return bundledJs;
 }
 
 const inputFile = process.argv[2];

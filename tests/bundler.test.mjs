@@ -86,6 +86,21 @@ describe('bundler.mjs', () => {
     });
   });
 
+  describe('tailwind CSS bundling', () => {
+    it('includes Tailwind CSS injection in the bundle output', () => {
+      const output = runBundler('simple-counter.tsx');
+      expect(output).toContain('terrarium-tw');
+      expect(output).toContain('createElement("style")');
+    });
+
+    it('generates CSS for Tailwind classes used in the component', () => {
+      const output = runBundler('simple-counter.tsx');
+      // simple-counter.tsx uses className="p-4" and "text-2xl font-bold"
+      expect(output).toContain('padding');
+      expect(output).toContain('font-bold');
+    });
+  });
+
   describe('external dependencies', () => {
     it('auto-installs missing packages and bundles them', () => {
       const output = runBundler('with-external-dep.tsx');
