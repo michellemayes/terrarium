@@ -3,7 +3,6 @@ use std::path::PathBuf;
 use std::sync::mpsc;
 use std::time::{Duration, Instant};
 use tauri::Emitter;
-use tauri::Manager;
 
 pub fn watch_file<R: tauri::Runtime>(
     app_handle: tauri::AppHandle<R>,
@@ -53,11 +52,7 @@ pub fn watch_file<R: tauri::Runtime>(
                     Ok(bundle) => ("bundle-ready", bundle),
                     Err(err) => ("bundle-error", err),
                 };
-                if let Some(window) = app.get_webview_window(&label) {
-                    let _ = window.emit(event_name, payload);
-                } else {
-                    let _ = app.emit(event_name, payload);
-                }
+                let _ = app.emit_to(&label, event_name, payload);
             });
         }
     });
