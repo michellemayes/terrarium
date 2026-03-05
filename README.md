@@ -99,18 +99,18 @@ claude "add a dark mode toggle to dashboard.tsx"
 
 ```bash
 # Install dependencies
-npm install
-cd src-tauri/resources && npm install && cd ../..
+pnpm install
+cd src-tauri/resources && pnpm install && cd ../..
 
 # Run in dev mode
-npm run tauri dev
+pnpm tauri dev
 ```
 
 ## Testing
 
 ```bash
 # Node.js tests (bundler + renderer)
-npm test
+pnpm test
 
 # Rust tests
 cd src-tauri && cargo test
