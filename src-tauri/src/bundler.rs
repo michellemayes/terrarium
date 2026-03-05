@@ -1,5 +1,4 @@
 use std::path::{Path, PathBuf};
-use tokio::process::Command as AsyncCommand;
 
 pub fn cache_dir() -> PathBuf {
     dirs::home_dir()
@@ -115,50 +114,69 @@ pub fn bundler_script_path<R: tauri::Runtime>(
         .map_err(|e| format!("Failed to locate bundler: {e}"))
 }
 
-pub fn needs_install() -> bool {
-    !cache_dir().join("node_modules").join("react").exists()
-}
-
 pub async fn bundle_tsx<R: tauri::Runtime>(
     app_handle: &tauri::AppHandle<R>,
     tsx_path: &Path,
 ) -> Result<String, String> {
     use tauri::Emitter;
+    use tokio::io::{AsyncBufReadExt, BufReader};
 
-    let installing = needs_install();
-    if installing {
-        let _ = app_handle.emit("install-started", ());
-    }
+    let _ = app_handle.emit("bundle-started", ());
 
     let bundler = bundler_script_path(app_handle)?;
     let node = find_node()?;
 
-    // Add node's directory to PATH so bundler.mjs can find npm
     let node_dir = node.parent().unwrap_or(Path::new(""));
     let path_env = match std::env::var("PATH") {
         Ok(existing) => format!("{}:{existing}", node_dir.display()),
         Err(_) => format!("{}:/usr/bin:/bin", node_dir.display()),
     };
 
-    let output = tokio::time::timeout(
-        std::time::Duration::from_secs(120),
-        AsyncCommand::new(&node)
-            .arg(&bundler)
-            .arg(tsx_path)
-            .env("PATH", &path_env)
-            .output(),
-    )
-    .await
-    .map_err(|_| "Bundler timed out after 120 seconds".to_string())?
-    .map_err(|e| format!("Failed to run bundler: {e}"))?;
+    let mut child = tokio::process::Command::new(&node)
+        .arg(&bundler)
+        .arg(tsx_path)
+        .env("PATH", &path_env)
+        .stdout(std::process::Stdio::piped())
+        .stderr(std::process::Stdio::piped())
+        .spawn()
+        .map_err(|e| format!("Failed to run bundler: {e}"))?;
 
-    if installing {
-        let _ = app_handle.emit("install-finished", ());
-    }
+    // Stream stderr for progress events
+    let stderr = child.stderr.take();
+    let progress_handle = app_handle.clone();
+    let stderr_task = tokio::spawn(async move {
+        if let Some(stderr) = stderr {
+            let reader = BufReader::new(stderr);
+            let mut lines = reader.lines();
+            while let Ok(Some(line)) = lines.next_line().await {
+                if let Ok(val) = serde_json::from_str::<serde_json::Value>(&line) {
+                    if val.get("progress").and_then(|v| v.as_bool()) == Some(true) {
+                        if let Some(msg) = val.get("message").and_then(|v| v.as_str()) {
+                            let _ = progress_handle.emit("bundle-progress", msg);
+                        }
+                    }
+                }
+            }
+        }
+    });
+
+    let result = tokio::time::timeout(
+        std::time::Duration::from_secs(120),
+        child.wait_with_output(),
+    )
+    .await;
+
+    // Ensure stderr task completes
+    let _ = stderr_task.await;
+
+    let _ = app_handle.emit("bundle-finished", ());
+
+    let output = result
+        .map_err(|_| "Bundler timed out after 120 seconds".to_string())?
+        .map_err(|e| format!("Failed to run bundler: {e}"))?;
 
     let stdout = String::from_utf8_lossy(&output.stdout).to_string();
 
-    // Bundler writes JSON error payloads to stdout in both success and failure cases
     if stdout.starts_with("{\"error\":true")
         || (!output.status.success() && stdout.starts_with('{'))
     {
@@ -168,8 +186,8 @@ pub async fn bundle_tsx<R: tauri::Runtime>(
     if output.status.success() {
         Ok(stdout)
     } else {
-        let stderr = String::from_utf8_lossy(&output.stderr).to_string();
-        Err(format!("Bundler failed:\n{stderr}"))
+        let stderr_str = String::from_utf8_lossy(&output.stderr).to_string();
+        Err(format!("Bundler failed:\n{stderr_str}"))
     }
 }
 
