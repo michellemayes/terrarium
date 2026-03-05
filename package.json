@@ -9,7 +9,8 @@
     "test": "vitest run",
     "test:watch": "vitest",
     "test:coverage": "vitest run --coverage",
-    "prepare": "husky"
+    "prepare": "husky",
+    "changelog": "git cliff --output CHANGELOG.md"
   },
   "devDependencies": {
     "@commitlint/cli": "^20.4.3",
