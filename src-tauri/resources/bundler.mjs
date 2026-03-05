@@ -21,18 +21,26 @@ export function ensureCacheDir() {
 export function installPackages(packages) {
   if (packages.length === 0) return;
   console.error(`[terrarium] Installing: ${packages.join(' ')}`);
+  const run = () => execFileSync('npm', ['install', '--prefix', CACHE_DIR, ...packages], {
+    stdio: ['pipe', 'pipe', 'pipe'],
+    encoding: 'utf-8',
+    timeout: 120000
+  });
   try {
-    execFileSync('npm', ['install', '--prefix', CACHE_DIR, ...packages], {
-      stdio: ['pipe', 'pipe', 'pipe'],
-      encoding: 'utf-8',
-      timeout: 120000
-    });
+    run();
   } catch (err) {
     const msg = String(err.stderr || err.stdout || err.message || '');
     if (isNetworkMessage(msg)) {
       const networkErr = new Error(`Network error: could not install ${packages.join(', ')}. Check your internet connection.`);
       networkErr.type = 'network';
       throw networkErr;
+    }
+    // ENOTEMPTY is a known npm bug with stale node_modules directories — retry once
+    if (msg.includes('ENOTEMPTY')) {
+      console.error('[terrarium] Got ENOTEMPTY, retrying npm install...');
+      fs.rmSync(NODE_MODULES, { recursive: true, force: true });
+      run();
+      return;
     }
     throw err;
   }
