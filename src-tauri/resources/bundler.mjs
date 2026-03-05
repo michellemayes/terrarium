@@ -58,7 +58,17 @@ export async function bundle(inputFile) {
     throw new Error(`File not found: ${resolvedInput}`);
   }
 
-  const basePackages = ['react', 'react-dom', 'esbuild'];
+  const basePackages = [
+    'react', 'react-dom', 'esbuild',
+    // Common dependencies used in Claude-generated artifacts
+    'lucide-react',
+    'recharts',
+    'date-fns',
+    'framer-motion',
+    'clsx',
+    'tailwind-merge',
+    'class-variance-authority',
+  ];
   installPackages(basePackages.filter(p => !isInstalled(p)));
 
   const esbuildPath = path.join(NODE_MODULES, 'esbuild', 'lib', 'main.js');

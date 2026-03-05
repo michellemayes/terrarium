@@ -93,6 +93,36 @@ describe('bundler.mjs', () => {
       expect(output.length).toBeGreaterThan(100);
       expect(output).toContain('createRoot');
     });
+
+    it('bundles lucide-react icons', () => {
+      const output = runBundler('with-external-dep.tsx');
+      expect(output).toBeTruthy();
+      expect(output).toContain('createRoot');
+    });
+
+    it('bundles recharts', () => {
+      const output = runBundler('with-recharts.tsx');
+      expect(output).toBeTruthy();
+      expect(output).toContain('createRoot');
+    });
+
+    it('bundles framer-motion', () => {
+      const output = runBundler('with-framer-motion.tsx');
+      expect(output).toBeTruthy();
+      expect(output).toContain('createRoot');
+    });
+
+    it('bundles date-fns', () => {
+      const output = runBundler('with-date-fns.tsx');
+      expect(output).toBeTruthy();
+      expect(output).toContain('createRoot');
+    });
+
+    it('bundles clsx and tailwind-merge', () => {
+      const output = runBundler('with-clsx.tsx');
+      expect(output).toBeTruthy();
+      expect(output).toContain('createRoot');
+    });
   });
 
   describe('error handling', () => {
