@@ -3,10 +3,19 @@ pub mod recent;
 pub mod watcher;
 
 use std::collections::HashMap;
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 use std::sync::Mutex;
 use tauri::menu::{MenuBuilder, SubmenuBuilder};
 use tauri::{Emitter, Manager, State};
+
+const SUPPORTED_EXTENSIONS: &[&str] = &["tsx", "jsx"];
+
+fn is_supported_ext(path: &Path) -> bool {
+    path.extension()
+        .and_then(|e| e.to_str())
+        .map(|e| SUPPORTED_EXTENSIONS.iter().any(|ext| e.eq_ignore_ascii_case(ext)))
+        .unwrap_or(false)
+}
 
 pub struct WindowState {
     pub file: PathBuf,
@@ -29,8 +38,8 @@ async fn open_file(
     if !tsx_path.exists() {
         return Err(format!("File not found: {path}"));
     }
-    if tsx_path.extension().and_then(|e| e.to_str()) != Some("tsx") {
-        return Err(format!("Not a TSX file: {path}"));
+    if !is_supported_ext(&tsx_path) {
+        return Err(format!("Not a TSX/JSX file: {path}"));
     }
 
     let label = window.label().to_string();
@@ -70,7 +79,7 @@ async fn pick_and_open_files(
     let picked = app
         .dialog()
         .file()
-        .add_filter("TSX Files", &["tsx"])
+        .add_filter("TSX/JSX Files", &["tsx", "jsx"])
         .blocking_pick_files();
 
     let files = picked.ok_or_else(|| "No file selected".to_string())?;
@@ -102,7 +111,7 @@ async fn pick_and_open_files(
     };
 
     for tsx_path in &remaining {
-        if !tsx_path.exists() || tsx_path.extension().and_then(|e| e.to_str()) != Some("tsx") {
+        if !tsx_path.exists() || !is_supported_ext(&tsx_path) {
             continue;
         }
         let new_label = next_label(&state);
@@ -149,16 +158,11 @@ async fn request_bundle(
     bundler::bundle_tsx(&app, &path).await
 }
 
-fn tsx_paths_from_urls(urls: &[tauri::Url]) -> Vec<PathBuf> {
+fn supported_paths_from_urls(urls: &[tauri::Url]) -> Vec<PathBuf> {
     urls.iter()
         .filter(|u| u.scheme() == "file")
         .filter_map(|u| u.to_file_path().ok())
-        .filter(|p| {
-            p.extension()
-                .and_then(|e| e.to_str())
-                .map(|e| e.eq_ignore_ascii_case("tsx"))
-                .unwrap_or(false)
-        })
+        .filter(|p| is_supported_ext(p))
         .collect()
 }
 
@@ -210,7 +214,7 @@ async fn open_in_new_windows(
 ) -> Result<(), String> {
     for path in paths {
         let tsx_path = PathBuf::from(&path);
-        if !tsx_path.exists() || tsx_path.extension().and_then(|e| e.to_str()) != Some("tsx") {
+        if !tsx_path.exists() || !is_supported_ext(&tsx_path) {
             continue;
         }
         let label = next_label(&state);
@@ -444,7 +448,7 @@ pub fn run() {
         .expect("error while building tauri application")
         .run(|app, event| {
             if let tauri::RunEvent::Opened { urls } = event {
-                let tsx_paths = tsx_paths_from_urls(&urls);
+                let tsx_paths = supported_paths_from_urls(&urls);
                 if tsx_paths.is_empty() {
                     return;
                 }
@@ -571,42 +575,43 @@ mod tests {
     }
 
     #[test]
-    fn tsx_paths_from_urls_filters_tsx_files() {
+    fn supported_paths_from_urls_filters_supported_files() {
         let urls: Vec<tauri::Url> = vec![
             "file:///tmp/hello.tsx".parse().unwrap(),
             "file:///tmp/readme.md".parse().unwrap(),
             "file:///tmp/app.tsx".parse().unwrap(),
+            "file:///tmp/widget.jsx".parse().unwrap(),
             "https://example.com/foo.tsx".parse().unwrap(),
         ];
-        let paths = tsx_paths_from_urls(&urls);
-        assert_eq!(paths.len(), 2);
+        let paths = supported_paths_from_urls(&urls);
+        assert_eq!(paths.len(), 3);
         assert_eq!(paths[0], PathBuf::from("/tmp/hello.tsx"));
         assert_eq!(paths[1], PathBuf::from("/tmp/app.tsx"));
+        assert_eq!(paths[2], PathBuf::from("/tmp/widget.jsx"));
     }
 
     #[test]
-    fn tsx_paths_from_urls_returns_empty_for_no_tsx() {
+    fn supported_paths_from_urls_returns_empty_for_unsupported() {
         let urls: Vec<tauri::Url> = vec![
             "file:///tmp/readme.md".parse().unwrap(),
             "https://example.com/foo.tsx".parse().unwrap(),
         ];
-        assert!(tsx_paths_from_urls(&urls).is_empty());
+        assert!(supported_paths_from_urls(&urls).is_empty());
     }
 
     #[test]
-    fn tsx_paths_from_urls_handles_empty_input() {
-        assert!(tsx_paths_from_urls(&[]).is_empty());
+    fn supported_paths_from_urls_handles_empty_input() {
+        assert!(supported_paths_from_urls(&[]).is_empty());
     }
 
     #[test]
-    fn tsx_paths_from_urls_accepts_mixed_case_extensions() {
+    fn supported_paths_from_urls_accepts_mixed_case_extensions() {
         let urls: Vec<tauri::Url> = vec![
             "file:///tmp/App.TSX".parse().unwrap(),
             "file:///tmp/Page.Tsx".parse().unwrap(),
+            "file:///tmp/Widget.JSX".parse().unwrap(),
         ];
-        let paths = tsx_paths_from_urls(&urls);
-        assert_eq!(paths.len(), 2);
-        assert_eq!(paths[0], PathBuf::from("/tmp/App.TSX"));
-        assert_eq!(paths[1], PathBuf::from("/tmp/Page.Tsx"));
+        let paths = supported_paths_from_urls(&urls);
+        assert_eq!(paths.len(), 3);
     }
 }

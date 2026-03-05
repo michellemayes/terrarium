@@ -5,7 +5,7 @@
 <h1 align="center">Terrarium</h1>
 
 <p align="center">
-  <strong>A tiny terrarium to view your TSX components</strong>
+  <strong>A tiny terrarium to view your React components</strong>
   <br />
   A contained Tauri viewing environment where they can live and grow.
 </p>
@@ -19,9 +19,9 @@
 
 ---
 
-Claude generates beautiful TSX artifacts &mdash; interactive dashboards, data visualizations, mini-apps &mdash; but they live trapped inside a chat window. **Terrarium sets them free.**
+Claude generates beautiful React artifacts &mdash; interactive dashboards, data visualizations, mini-apps &mdash; but they live trapped inside a chat window. **Terrarium sets them free.**
 
-Drop any `.tsx` file into Terrarium and it renders instantly as a standalone app. No `create-react-app`, no `package.json`, no setup. Terrarium reads the imports, installs the dependencies, bundles everything with esbuild, and shows you a live preview. Edit the file and it hot-reloads automatically.
+Drop any `.tsx` or `.jsx` file into Terrarium and it renders instantly as a standalone app. No `create-react-app`, no `package.json`, no setup. Terrarium reads the imports, installs the dependencies, bundles everything with esbuild, and shows you a live preview. Edit the file and it hot-reloads automatically.
 
 ## The Workflow
 
@@ -29,9 +29,9 @@ Drop any `.tsx` file into Terrarium and it renders instantly as a standalone app
 
 1. **Generate** &mdash; Use Claude Desktop to build something as an Artifact. A dashboard, a form, a game, a chart &mdash; anything that renders as a React component.
 
-2. **Export** &mdash; Click the download button on the Artifact to save it as a `.tsx` file, or copy the code into a new file.
+2. **Export** &mdash; Click the download button on the Artifact to save it as a `.tsx` or `.jsx` file, or copy the code into a new file.
 
-3. **Preview** &mdash; Open the file in Terrarium. Double-click it, drag it onto the dock icon, or run `terrarium myfile.tsx` from your terminal.
+3. **Preview** &mdash; Open the file in Terrarium. Double-click it, drag it onto the dock icon, or run `terrarium myfile.tsx` (or `myfile.jsx`) from your terminal.
 
 4. **Iterate** &mdash; Edit the file in your editor or with [Claude Code](https://docs.anthropic.com/en/docs/claude-code) and watch Terrarium live-reload your changes. Go from chat prototype to polished local app without ever spinning up a dev server.
 
@@ -81,7 +81,7 @@ alias terrarium='open -a Terrarium'
 terrarium myfile.tsx
 ```
 
-Or launch the app and click **Open TSX File**, or drag a `.tsx` file onto the dock icon.
+Or launch the app and click **Open File**, or drag a `.tsx` or `.jsx` file onto the dock icon.
 
 ### Works great with Claude Code
 
@@ -118,12 +118,12 @@ cd src-tauri && cargo test
 
 ## Security
 
-Terrarium executes the code in any TSX file you open. Only open files you trust &mdash; treat `.tsx` files like executables.
+Terrarium executes the code in any file you open. Only open files you trust &mdash; treat `.tsx` and `.jsx` files like executables.
 
 ## Built With
 
 - [Tauri](https://tauri.app) &mdash; native app shell
-- [esbuild](https://esbuild.github.io) &mdash; TSX bundling
+- [esbuild](https://esbuild.github.io) &mdash; TSX/JSX bundling
 - [React](https://react.dev) &mdash; component rendering
 - [Tailwind CSS](https://tailwindcss.com) &mdash; styling
 

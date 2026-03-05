@@ -40,6 +40,12 @@
         "mimeType": "text/typescript-jsx",
         "description": "TypeScript JSX file",
         "role": "Viewer"
+      },
+      {
+        "ext": ["jsx"],
+        "mimeType": "text/jsx",
+        "description": "JSX file",
+        "role": "Viewer"
       }
     ],
     "macOS": {
