@@ -26,7 +26,7 @@ Run the app in dev mode:
 pnpm tauri dev
 ```
 
-Pass a TSX file directly:
+Pass a TSX or JSX file directly:
 
 ```bash
 pnpm tauri dev -- -- test.tsx
@@ -50,7 +50,7 @@ src-tauri/
   src/bundler.rs      # Spawns the Node bundler process
   src/watcher.rs      # File system watcher (auto-reload on save)
   resources/
-    bundler.mjs       # esbuild-based TSX bundler with auto-install
+    bundler.mjs       # esbuild-based TSX/JSX bundler with auto-install
 tests/                # Vitest test suites
 ```
 

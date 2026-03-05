@@ -71,6 +71,22 @@ describe('bundler.mjs', () => {
     });
   });
 
+  describe('simple JSX bundling', () => {
+    it('bundles a JSX React component with useState', () => {
+      const output = runBundler('simple-counter.jsx');
+      expect(output).toBeTruthy();
+      expect(output.length).toBeGreaterThan(100);
+      expect(output).toContain('createElement');
+      expect(output).toContain('createRoot');
+    });
+
+    it('produces valid JavaScript (no JSX syntax remaining)', () => {
+      const output = runBundler('simple-counter.jsx');
+      expect(output).not.toContain('<div className=');
+      expect(output).not.toContain('onClick={() =>');
+    });
+  });
+
   describe('self-rendering wrapper', () => {
     it('includes createRoot mount code for default exports', () => {
       const output = runBundler('simple-counter.tsx');

@@ -110,7 +110,7 @@ export async function bundle(inputFile) {
       } else if (Component) {
         root.render(Component);
       } else {
-        rootEl.innerHTML = '<p style="color:#888;font-family:system-ui;padding:24px;">No default export found. The TSX file must export a default React component.</p>';
+        rootEl.innerHTML = '<p style="color:#888;font-family:system-ui;padding:24px;">No default export found. The file must export a default React component.</p>';
       }
     }
   `;
@@ -138,7 +138,7 @@ export async function bundle(inputFile) {
 
 const inputFile = process.argv[2];
 if (!inputFile) {
-  console.error('Usage: bundler.mjs <file.tsx>');
+  console.error('Usage: bundler.mjs <file.tsx|file.jsx>');
   process.exit(1);
 }
 

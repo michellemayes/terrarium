@@ -173,18 +173,18 @@ listen('tauri://drag-drop', (event) => {
   const paths = event.payload.paths;
   if (!paths || paths.length === 0) return;
 
-  const tsxFiles = paths.filter(p => p.endsWith('.tsx'));
-  if (tsxFiles.length === 0) {
-    showError('Only .tsx files are supported');
+  const supported = paths.filter(p => p.endsWith('.tsx') || p.endsWith('.jsx'));
+  if (supported.length === 0) {
+    showError('Only .tsx and .jsx files are supported');
     return;
   }
 
   if (fileLoaded) {
-    invoke('open_in_new_windows', { paths: tsxFiles });
+    invoke('open_in_new_windows', { paths: supported });
   } else {
-    openFileByPath(tsxFiles[0]);
-    if (tsxFiles.length > 1) {
-      invoke('open_in_new_windows', { paths: tsxFiles.slice(1) });
+    openFileByPath(supported[0]);
+    if (supported.length > 1) {
+      invoke('open_in_new_windows', { paths: supported.slice(1) });
     }
   }
 });
@@ -246,7 +246,7 @@ function renderPlantShelf(recentFiles) {
     const name = document.createElement('span');
     name.className = 'plant-name';
     const filename = file.path.split('/').pop() || file.path;
-    name.textContent = filename.replace(/\.tsx$/, '');
+    name.textContent = filename.replace(/\.(tsx|jsx)$/, '');
     item.appendChild(name);
 
     item.addEventListener('click', () => {
