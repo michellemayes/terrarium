@@ -26,5 +26,5 @@ docs/plans/
 # Logs
 *.log
 
-# Lock files are kept for reproducibility
-# package-lock.json
+# npm lock files (using pnpm instead)
+package-lock.json

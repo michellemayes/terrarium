@@ -39,17 +39,19 @@ jobs:
         with:
           node-version: 20
 
+      - uses: pnpm/action-setup@v4
+
       - name: Install frontend dependencies
-        run: npm install
+        run: pnpm install
 
       - name: Install bundler dependencies
-        run: cd src-tauri/resources && npm install
+        run: cd src-tauri/resources && pnpm install
 
       - name: Pre-install bundler dependencies
         run: npm install --prefix ~/.terrarium react react-dom esbuild
 
       - name: Run tests before publish
-        run: npm test && cd src-tauri && cargo test
+        run: pnpm test && cd src-tauri && cargo test
 
       - name: Validate release tag
         run: |

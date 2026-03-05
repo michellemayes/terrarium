@@ -20,7 +20,8 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: 20
-      - run: npm install
+      - uses: pnpm/action-setup@v4
+      - run: pnpm install
       - name: Check formatting
         run: cd src-tauri && cargo fmt --check
       - name: Clippy
@@ -37,6 +38,7 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: 20
-      - run: npm install
-      - run: cd src-tauri/resources && npm install
-      - run: npm test
+      - uses: pnpm/action-setup@v4
+      - run: pnpm install
+      - run: cd src-tauri/resources && pnpm install
+      - run: pnpm test
