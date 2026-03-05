@@ -264,3 +264,85 @@ function loadPlantShelf() {
 }
 
 loadPlantShelf();
+
+// --- Update notification ---
+
+const updateToast = document.getElementById('update-toast');
+const updateMessage = document.getElementById('update-toast-message');
+const updateActions = document.getElementById('update-toast-actions');
+
+function clearChildren(el) {
+  while (el.firstChild) el.removeChild(el.firstChild);
+}
+
+function createBtn(text, className, onClick) {
+  const btn = document.createElement('button');
+  btn.className = className;
+  btn.textContent = text;
+  btn.addEventListener('click', onClick);
+  return btn;
+}
+
+function showUpdateAvailable(version) {
+  if (!updateToast || !updateMessage || !updateActions) return;
+  updateMessage.textContent = 'Terrarium v' + version + ' is available.';
+  clearChildren(updateActions);
+
+  updateActions.appendChild(createBtn('Update', 'update-primary-btn', () => {
+    showUpdateDownloading();
+    invoke('download_update').catch(err => showUpdateError(err));
+  }));
+  updateActions.appendChild(createBtn('\u00d7', 'update-dismiss-btn', () => {
+    updateToast.classList.remove('visible');
+  }));
+  updateToast.classList.add('visible');
+}
+
+function showUpdateDownloading() {
+  if (!updateMessage || !updateActions) return;
+  clearChildren(updateMessage);
+  const spinner = document.createElement('span');
+  spinner.className = 'update-spinner';
+  updateMessage.appendChild(spinner);
+  updateMessage.appendChild(document.createTextNode('Downloading update\u2026'));
+  clearChildren(updateActions);
+}
+
+function showUpdateReady() {
+  if (!updateMessage || !updateActions) return;
+  updateMessage.textContent = 'Update downloaded. Restart now?';
+  clearChildren(updateActions);
+
+  updateActions.appendChild(createBtn('Restart', 'update-primary-btn', () => {
+    invoke('restart_app').catch(() => {});
+  }));
+  updateActions.appendChild(createBtn('Later', 'update-dismiss-btn', () => {
+    updateToast.classList.remove('visible');
+  }));
+}
+
+function showUpdateError(err) {
+  if (!updateMessage || !updateActions) return;
+  updateMessage.textContent = 'Update failed. Try again?';
+  clearChildren(updateActions);
+
+  updateActions.appendChild(createBtn('Try Again', 'update-primary-btn', () => {
+    showUpdateDownloading();
+    invoke('download_update').catch(e => showUpdateError(e));
+  }));
+  updateActions.appendChild(createBtn('\u00d7', 'update-dismiss-btn', () => {
+    updateToast.classList.remove('visible');
+  }));
+}
+
+listen('update-available', (event) => {
+  showUpdateAvailable(event.payload);
+});
+
+listen('update-downloaded', () => {
+  showUpdateReady();
+});
+
+listen('update-error', (event) => {
+  showUpdateError(event.payload);
+});
