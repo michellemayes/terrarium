@@ -152,12 +152,15 @@ jobs:
       - uses: actions/checkout@v4
         with:
           fetch-depth: 0
-      - name: Add auto-generated release notes
-        run: |
-          gh api \
-            --method POST \
-            -H "Accept: application/vnd.github+json" \
-            /repos/${{ github.repository }}/releases/generate-notes \
-            -f tag_name="$RELEASE_TAG" \
-            --jq '.body' > /tmp/release-notes.md
-          gh release edit "$RELEASE_TAG" --notes-file /tmp/release-notes.md
+      - name: Install git-cliff
+        uses: orhun/git-cliff-action@v4
+        with:
+          args: --version
+      - name: Generate release notes
+        uses: orhun/git-cliff-action@v4
+        with:
+          args: --latest --strip header
+        env:
+          OUTPUT: /tmp/release-notes.md
+      - name: Update GitHub release
+        run: gh release edit "$RELEASE_TAG" --notes-file /tmp/release-notes.md
