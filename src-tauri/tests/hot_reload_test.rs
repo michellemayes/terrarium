@@ -91,9 +91,9 @@ async fn watcher_triggers_rebundle_on_file_change() {
         terrarium_lib::watcher::watch_file(handle.clone(), file.clone(), "main".to_string())
             .expect("watch_file failed");
 
-    // Heuristic: give the OS file watcher time to register. 1s is generous for
-    // local dev; on a heavily loaded CI runner this could still be insufficient.
-    tokio::time::sleep(Duration::from_millis(1000)).await;
+    // Heuristic: give the OS file watcher time to register. 2s is generous for
+    // local dev; on a heavily loaded CI runner this could still be tight.
+    tokio::time::sleep(Duration::from_millis(2000)).await;
     std::fs::write(
         &file,
         r#"export default function V2() { return <div>v2</div>; }"#,
@@ -101,7 +101,7 @@ async fn watcher_triggers_rebundle_on_file_change() {
     .unwrap();
 
     // Wait for debounce (300ms) + bundling (up to several seconds for Node.js)
-    let deadline = tokio::time::Instant::now() + Duration::from_secs(15);
+    let deadline = tokio::time::Instant::now() + Duration::from_secs(30);
     loop {
         tokio::time::sleep(Duration::from_millis(500)).await;
         if !received.lock().unwrap().is_empty() || !errors.lock().unwrap().is_empty() {
@@ -164,11 +164,11 @@ async fn watcher_emits_error_on_invalid_tsx() {
             .expect("watch_file failed");
 
     // Heuristic: give the OS file watcher time to register.
-    tokio::time::sleep(Duration::from_millis(1000)).await;
+    tokio::time::sleep(Duration::from_millis(2000)).await;
 
     std::fs::write(&file, "this is not valid tsx {{{").unwrap();
 
-    let deadline = tokio::time::Instant::now() + Duration::from_secs(15);
+    let deadline = tokio::time::Instant::now() + Duration::from_secs(30);
     loop {
         tokio::time::sleep(Duration::from_millis(500)).await;
         if !errors.lock().unwrap().is_empty() || !ready.lock().unwrap().is_empty() {
