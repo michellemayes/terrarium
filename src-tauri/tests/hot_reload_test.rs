@@ -2,6 +2,11 @@ use std::sync::{Arc, Mutex, OnceLock};
 use std::time::Duration;
 use tauri::Listener;
 
+// NOTE: We use `listen_any` instead of `listen` because the watcher emits
+// events via `emit_to(label, ..)` which targets a specific window.
+// `listen` on AppHandle only receives untargeted broadcasts, while
+// `listen_any` receives events regardless of target.
+
 static BUNDLER_PATH_INIT: OnceLock<()> = OnceLock::new();
 
 fn set_bundler_path() {
@@ -71,13 +76,13 @@ async fn watcher_triggers_rebundle_on_file_change() {
     let errors = Arc::new(Mutex::new(Vec::<String>::new()));
 
     let received_clone = received.clone();
-    handle.listen("bundle-ready", move |event| {
+    handle.listen_any("bundle-ready", move |event| {
         let payload = event.payload().to_string();
         received_clone.lock().unwrap().push(payload);
     });
 
     let errors_clone = errors.clone();
-    handle.listen("bundle-error", move |event| {
+    handle.listen_any("bundle-error", move |event| {
         let payload = event.payload().to_string();
         errors_clone.lock().unwrap().push(payload);
     });
@@ -86,9 +91,9 @@ async fn watcher_triggers_rebundle_on_file_change() {
         terrarium_lib::watcher::watch_file(handle.clone(), file.clone(), "main".to_string())
             .expect("watch_file failed");
 
-    // Heuristic: give the OS file watcher time to register. 1s is generous for
-    // local dev; on a heavily loaded CI runner this could still be insufficient.
-    tokio::time::sleep(Duration::from_millis(1000)).await;
+    // Heuristic: give the OS file watcher time to register. 2s is generous for
+    // local dev; on a heavily loaded CI runner this could still be tight.
+    tokio::time::sleep(Duration::from_millis(2000)).await;
     std::fs::write(
         &file,
         r#"export default function V2() { return <div>v2</div>; }"#,
@@ -96,7 +101,7 @@ async fn watcher_triggers_rebundle_on_file_change() {
     .unwrap();
 
     // Wait for debounce (300ms) + bundling (up to several seconds for Node.js)
-    let deadline = tokio::time::Instant::now() + Duration::from_secs(15);
+    let deadline = tokio::time::Instant::now() + Duration::from_secs(30);
     loop {
         tokio::time::sleep(Duration::from_millis(500)).await;
         if !received.lock().unwrap().is_empty() || !errors.lock().unwrap().is_empty() {
@@ -142,14 +147,14 @@ async fn watcher_emits_error_on_invalid_tsx() {
 
     let errors = Arc::new(Mutex::new(Vec::<String>::new()));
     let errors_clone = errors.clone();
-    handle.listen("bundle-error", move |event| {
+    handle.listen_any("bundle-error", move |event| {
         let payload = event.payload().to_string();
         errors_clone.lock().unwrap().push(payload);
     });
 
     let ready = Arc::new(Mutex::new(Vec::<String>::new()));
     let ready_clone = ready.clone();
-    handle.listen("bundle-ready", move |event| {
+    handle.listen_any("bundle-ready", move |event| {
         let payload = event.payload().to_string();
         ready_clone.lock().unwrap().push(payload);
     });
@@ -159,11 +164,11 @@ async fn watcher_emits_error_on_invalid_tsx() {
             .expect("watch_file failed");
 
     // Heuristic: give the OS file watcher time to register.
-    tokio::time::sleep(Duration::from_millis(1000)).await;
+    tokio::time::sleep(Duration::from_millis(2000)).await;
 
     std::fs::write(&file, "this is not valid tsx {{{").unwrap();
 
-    let deadline = tokio::time::Instant::now() + Duration::from_secs(15);
+    let deadline = tokio::time::Instant::now() + Duration::from_secs(30);
     loop {
         tokio::time::sleep(Duration::from_millis(500)).await;
         if !errors.lock().unwrap().is_empty() || !ready.lock().unwrap().is_empty() {

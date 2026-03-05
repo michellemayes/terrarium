@@ -312,6 +312,65 @@
       color: #6b5a8a;
       font-style: italic;
     }
+    #update-toast {
+      display: none;
+      position: fixed;
+      bottom: 20px;
+      right: 20px;
+      background: linear-gradient(135deg, #2d1854, #1e1035);
+      border: 1px solid #7c3aed;
+      border-radius: 10px;
+      padding: 14px 18px;
+      z-index: 10001;
+      box-shadow: 0 4px 24px rgba(0, 0, 0, 0.4);
+      color: #c4b5fd;
+      font-size: 13px;
+      max-width: 300px;
+      animation: toast-in 0.3s ease-out;
+    }
+    #update-toast.visible { display: block; }
+    @keyframes toast-in {
+      from { opacity: 0; transform: translateY(10px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+    #update-toast-message {
+      margin-bottom: 10px;
+      line-height: 1.4;
+    }
+    #update-toast-actions {
+      display: flex;
+      gap: 8px;
+      align-items: center;
+    }
+    #update-toast-actions button {
+      border: none;
+      border-radius: 6px;
+      padding: 6px 14px;
+      font-size: 12px;
+      cursor: pointer;
+      font-weight: 500;
+    }
+    .update-primary-btn {
+      background: linear-gradient(135deg, #7c3aed, #6d28d9);
+      color: #fff;
+    }
+    .update-primary-btn:hover { background: linear-gradient(135deg, #8b5cf6, #7c3aed); }
+    .update-dismiss-btn {
+      background: rgba(255, 255, 255, 0.1);
+      color: #8b7aab;
+    }
+    .update-dismiss-btn:hover { background: rgba(255, 255, 255, 0.15); color: #c4b5fd; }
+    .update-spinner {
+      display: inline-block;
+      width: 12px;
+      height: 12px;
+      border: 2px solid #7c3aed;
+      border-top-color: #c4b5fd;
+      border-radius: 50%;
+      animation: spin 0.8s linear infinite;
+      vertical-align: middle;
+      margin-right: 6px;
+    }
   </style>
 </head>
 <body>
@@ -359,9 +418,9 @@
         <path transform="translate(72,350)" d="M 0 -7 L 1.8 -1.8 L 7 0 L 1.8 1.8 L 0 7 L -1.8 1.8 L -7 0 L -1.8 -1.8 Z" fill="#ffc0e8"/>
       </svg>
       <h1>Terrarium</h1>
-      <p>A tiny terrarium to view your TSX components</p>
-      <button id="open-btn">Open TSX File</button>
-      <span id="drop-hint">or drag and drop a .tsx file onto the app</span>
+      <p>A tiny terrarium to view your React components</p>
+      <button id="open-btn">Open File</button>
+      <span id="drop-hint">or drag and drop a .tsx or .jsx file onto the app</span>
       <div id="plant-shelf" style="display: none;">
         <div id="shelf-label">Recent</div>
         <div id="shelf-plants-wrapper">
@@ -398,11 +457,11 @@
     <button id="node-banner-close">&times;</button>
   </div>
   <div id="drop-overlay">
-    <span>Drop .tsx file here</span>
+    <span>Drop file here</span>
     <span class="drop-sub">Release to open and render</span>
   </div>
   <div id="first-run-hint">
-    <span>Tip: Edit your .tsx file in any editor - Terrarium reloads automatically.</span>
+    <span>Tip: Edit your file in any editor - Terrarium reloads automatically.</span>
     <button id="first-run-dismiss">Got it</button>
   </div>
   <div id="error-banner">
@@ -411,6 +470,10 @@
       <button id="error-toggle">&#9660;</button>
     </div>
     <pre id="error-detail"></pre>
+  </div>
+  <div id="update-toast">
+    <div id="update-toast-message"></div>
+    <div id="update-toast-actions"></div>
   </div>
   <div id="plant-templates" style="display:none;">
     <!-- Plant 0: Round cactus -->

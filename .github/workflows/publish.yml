@@ -39,17 +39,19 @@ jobs:
         with:
           node-version: 20
 
+      - uses: pnpm/action-setup@v4
+
       - name: Install frontend dependencies
-        run: npm install
+        run: pnpm install
 
       - name: Install bundler dependencies
-        run: cd src-tauri/resources && npm install
+        run: cd src-tauri/resources && pnpm install
 
       - name: Pre-install bundler dependencies
         run: npm install --prefix ~/.terrarium react react-dom esbuild
 
       - name: Run tests before publish
-        run: npm test && cd src-tauri && cargo test
+        run: pnpm test && cd src-tauri && cargo test
 
       - name: Validate release tag
         run: |
@@ -152,10 +154,10 @@ jobs:
           fetch-depth: 0
       - name: Add auto-generated release notes
         run: |
-          NOTES=$(gh api \
+          gh api \
             --method POST \
             -H "Accept: application/vnd.github+json" \
             /repos/${{ github.repository }}/releases/generate-notes \
             -f tag_name="$RELEASE_TAG" \
-            --jq '.body')
-          gh release edit "$RELEASE_TAG" --notes "$NOTES"
+            --jq '.body' > /tmp/release-notes.md
+          gh release edit "$RELEASE_TAG" --notes-file /tmp/release-notes.md

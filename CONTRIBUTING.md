@@ -5,6 +5,7 @@ Thanks for your interest in contributing! Here's how to get started.
 ## Prerequisites
 
 - [Node.js](https://nodejs.org/) 20+
+- [pnpm](https://pnpm.io/) 10+
 - [Rust](https://rustup.rs/) (stable)
 - macOS (Terrarium currently targets macOS only)
 
@@ -13,8 +14,8 @@ Thanks for your interest in contributing! Here's how to get started.
 ```bash
 git clone https://github.com/michellemayes/terrarium.git
 cd terrarium
-npm install
-cd src-tauri/resources && npm install && cd ../..
+pnpm install
+cd src-tauri/resources && pnpm install && cd ../..
 ```
 
 ## Development
@@ -22,19 +23,19 @@ cd src-tauri/resources && npm install && cd ../..
 Run the app in dev mode:
 
 ```bash
-npm run tauri dev
+pnpm tauri dev
 ```
 
-Pass a TSX file directly:
+Pass a TSX or JSX file directly:
 
 ```bash
-npm run tauri dev -- -- test.tsx
+pnpm tauri dev -- -- test.tsx
 ```
 
 ## Testing
 
 ```bash
-npm test                        # Node tests (bundler, renderer)
+pnpm test                       # Node tests (bundler, renderer)
 cd src-tauri && cargo test      # Rust tests
 ```
 
@@ -49,7 +50,7 @@ src-tauri/
   src/bundler.rs      # Spawns the Node bundler process
   src/watcher.rs      # File system watcher (auto-reload on save)
   resources/
-    bundler.mjs       # esbuild-based TSX bundler with auto-install
+    bundler.mjs       # esbuild-based TSX/JSX bundler with auto-install
 tests/                # Vitest test suites
 ```
 

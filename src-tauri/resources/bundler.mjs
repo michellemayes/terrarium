@@ -79,7 +79,17 @@ export async function bundle(inputFile) {
     throw new Error(`File not found: ${resolvedInput}`);
   }
 
-  const basePackages = ['react', 'react-dom', 'esbuild', 'postcss', 'tailwindcss@3'];
+  const basePackages = [
+    'react', 'react-dom', 'esbuild', 'postcss', 'tailwindcss@3',
+    // Common dependencies used in Claude-generated artifacts
+    'lucide-react',
+    'recharts',
+    'date-fns',
+    'framer-motion',
+    'clsx',
+    'tailwind-merge',
+    'class-variance-authority',
+  ];
   installPackages(basePackages.filter(p => !isInstalled(p)));
 
   const esbuildPath = path.join(NODE_MODULES, 'esbuild', 'lib', 'main.js');
@@ -131,7 +141,7 @@ export async function bundle(inputFile) {
       } else if (Component) {
         root.render(Component);
       } else {
-        rootEl.innerHTML = '<p style="color:#888;font-family:system-ui;padding:24px;">No default export found. The TSX file must export a default React component.</p>';
+        rootEl.innerHTML = '<p style="color:#888;font-family:system-ui;padding:24px;">No default export found. The file must export a default React component.</p>';
       }
     }
   `;
@@ -173,7 +183,7 @@ export async function bundle(inputFile) {
 
 const inputFile = process.argv[2];
 if (!inputFile) {
-  console.error('Usage: bundler.mjs <file.tsx>');
+  console.error('Usage: bundler.mjs <file.tsx|file.jsx>');
   process.exit(1);
 }
 

@@ -3,10 +3,23 @@ pub mod recent;
 pub mod watcher;
 
 use std::collections::HashMap;
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 use std::sync::Mutex;
 use tauri::menu::{MenuBuilder, SubmenuBuilder};
 use tauri::{Emitter, Manager, State};
+
+const SUPPORTED_EXTENSIONS: &[&str] = &["tsx", "jsx"];
+
+fn is_supported_ext(path: &Path) -> bool {
+    path.extension()
+        .and_then(|e| e.to_str())
+        .map(|e| {
+            SUPPORTED_EXTENSIONS
+                .iter()
+                .any(|ext| e.eq_ignore_ascii_case(ext))
+        })
+        .unwrap_or(false)
+}
 
 pub struct WindowState {
     pub file: PathBuf,
@@ -16,6 +29,10 @@ pub struct WindowState {
 pub struct AppState {
     pub windows: Mutex<HashMap<String, WindowState>>,
     pub next_window_id: Mutex<u32>,
+}
+
+pub struct UpdateState {
+    pub pending_update: Mutex<Option<tauri_plugin_updater::Update>>,
 }
 
 #[tauri::command]
@@ -29,8 +46,8 @@ async fn open_file(
     if !tsx_path.exists() {
         return Err(format!("File not found: {path}"));
     }
-    if tsx_path.extension().and_then(|e| e.to_str()) != Some("tsx") {
-        return Err(format!("Not a TSX file: {path}"));
+    if !is_supported_ext(&tsx_path) {
+        return Err(format!("Not a TSX/JSX file: {path}"));
     }
 
     let label = window.label().to_string();
@@ -70,7 +87,7 @@ async fn pick_and_open_files(
     let picked = app
         .dialog()
         .file()
-        .add_filter("TSX Files", &["tsx"])
+        .add_filter("TSX/JSX Files", &["tsx", "jsx"])
         .blocking_pick_files();
 
     let files = picked.ok_or_else(|| "No file selected".to_string())?;
@@ -102,7 +119,7 @@ async fn pick_and_open_files(
     };
 
     for tsx_path in &remaining {
-        if !tsx_path.exists() || tsx_path.extension().and_then(|e| e.to_str()) != Some("tsx") {
+        if !tsx_path.exists() || !is_supported_ext(tsx_path) {
             continue;
         }
         let new_label = next_label(&state);
@@ -149,16 +166,11 @@ async fn request_bundle(
     bundler::bundle_tsx(&app, &path).await
 }
 
-fn tsx_paths_from_urls(urls: &[tauri::Url]) -> Vec<PathBuf> {
+fn supported_paths_from_urls(urls: &[tauri::Url]) -> Vec<PathBuf> {
     urls.iter()
         .filter(|u| u.scheme() == "file")
         .filter_map(|u| u.to_file_path().ok())
-        .filter(|p| {
-            p.extension()
-                .and_then(|e| e.to_str())
-                .map(|e| e.eq_ignore_ascii_case("tsx"))
-                .unwrap_or(false)
-        })
+        .filter(|p| is_supported_ext(p))
         .collect()
 }
 
@@ -185,13 +197,11 @@ fn spawn_bundle_and_watch(app: tauri::AppHandle, path: PathBuf, label: String) {
                 if let Some(w) = app.get_webview_window(&label) {
                     let filename = path.file_name().unwrap_or_default().to_string_lossy();
                     let _ = w.set_title(&format!("{filename} — Terrarium"));
-                    let _ = w.emit("bundle-ready", bundle);
                 }
+                let _ = app.emit_to(&label, "bundle-ready", bundle);
             }
             Err(err) => {
-                if let Some(w) = app.get_webview_window(&label) {
-                    let _ = w.emit("bundle-error", err);
-                }
+                let _ = app.emit_to(&label, "bundle-error", err);
             }
         }
         let watcher = watcher::watch_file(app.clone(), path.clone(), label.clone()).ok();
@@ -212,7 +222,7 @@ async fn open_in_new_windows(
 ) -> Result<(), String> {
     for path in paths {
         let tsx_path = PathBuf::from(&path);
-        if !tsx_path.exists() || tsx_path.extension().and_then(|e| e.to_str()) != Some("tsx") {
+        if !tsx_path.exists() || !is_supported_ext(&tsx_path) {
             continue;
         }
         let label = next_label(&state);
@@ -277,6 +287,37 @@ fn get_recent_files() -> Vec<recent::RecentFile> {
     live
 }
 
+#[tauri::command]
+async fn download_update(
+    app: tauri::AppHandle,
+    state: State<'_, UpdateState>,
+) -> Result<(), String> {
+    let update = state
+        .pending_update
+        .lock()
+        .map_err(|_| "Internal state error".to_string())?
+        .take()
+        .ok_or_else(|| "No update available".to_string())?;
+
+    let result = update.download_and_install(|_, _| {}, || {}).await;
+
+    match result {
+        Ok(()) => {
+            let _ = app.emit("update-downloaded", ());
+            Ok(())
+        }
+        Err(e) => {
+            let _ = app.emit("update-error", e.to_string());
+            Err(e.to_string())
+        }
+    }
+}
+
+#[tauri::command]
+async fn restart_app(app: tauri::AppHandle) -> Result<(), String> {
+    app.restart();
+}
+
 pub fn run() {
     tauri::Builder::default()
         .plugin(tauri_plugin_opener::init())
@@ -287,6 +328,7 @@ pub fn run() {
             windows: Mutex::new(HashMap::new()),
             next_window_id: Mutex::new(2),
         })
+        .manage(UpdateState { pending_update: Mutex::new(None) })
         .invoke_handler(tauri::generate_handler![
             open_file,
             pick_and_open_files,
@@ -296,6 +338,8 @@ pub fn run() {
             is_first_run,
             mark_first_run_complete,
             get_recent_files,
+            download_update,
+            restart_app,
         ])
         .menu(|handle| {
             let open_item = tauri::menu::MenuItemBuilder::with_id("open-file", "Open...")
@@ -378,23 +422,12 @@ pub fn run() {
 
                     match updater.check().await {
                         Ok(Some(update)) => {
-                            let msg = format!("Version {} is available.", update.version);
-                            let should_open = handle
-                                .dialog()
-                                .message(msg)
-                                .title("Update Available")
-                                .kind(tauri_plugin_dialog::MessageDialogKind::Info)
-                                .buttons(tauri_plugin_dialog::MessageDialogButtons::OkCancelCustom("Download".to_string(), "Later".to_string()))
-                                .blocking_show();
-                            if should_open {
-                                use tauri_plugin_opener::OpenerExt;
-                                if let Err(e) = handle.opener().open_url(
-                                    "https://github.com/michellemayes/terrarium/releases/latest",
-                                    None::<&str>,
-                                ) {
-                                    log::warn!("Failed to open releases URL: {e}");
-                                }
+                            let version = update.version.clone();
+                            let state = handle.state::<UpdateState>();
+                            if let Ok(mut pending) = state.pending_update.lock() {
+                                *pending = Some(update);
                             }
+                            let _ = handle.emit("update-available", &version);
                         }
                         Ok(None) => {
                             handle
@@ -419,17 +452,19 @@ pub fn run() {
         })
         .setup(|app| {
             let app_handle = app.handle().clone();
-
-            let update_handle = app_handle.clone();
             tauri::async_runtime::spawn(async move {
                 use tauri_plugin_updater::UpdaterExt;
-                if let Ok(updater) = update_handle.updater() {
+                if let Ok(updater) = app_handle.updater() {
                     if let Ok(Some(update)) = updater.check().await {
-                        let _ = update_handle.emit("update-available", &update.version);
+                        let version = update.version.clone();
+                        let state = app_handle.state::<UpdateState>();
+                        if let Ok(mut pending) = state.pending_update.lock() {
+                            *pending = Some(update);
+                        }
+                        let _ = app_handle.emit("update-available", &version);
                     }
                 }
             });
-
             Ok(())
         })
         .on_window_event(|window, event| {
@@ -446,7 +481,7 @@ pub fn run() {
         .expect("error while building tauri application")
         .run(|app, event| {
             if let tauri::RunEvent::Opened { urls } = event {
-                let tsx_paths = tsx_paths_from_urls(&urls);
+                let tsx_paths = supported_paths_from_urls(&urls);
                 if tsx_paths.is_empty() {
                     return;
                 }
@@ -573,42 +608,43 @@ mod tests {
     }
 
     #[test]
-    fn tsx_paths_from_urls_filters_tsx_files() {
+    fn supported_paths_from_urls_filters_supported_files() {
         let urls: Vec<tauri::Url> = vec![
             "file:///tmp/hello.tsx".parse().unwrap(),
             "file:///tmp/readme.md".parse().unwrap(),
             "file:///tmp/app.tsx".parse().unwrap(),
+            "file:///tmp/widget.jsx".parse().unwrap(),
             "https://example.com/foo.tsx".parse().unwrap(),
         ];
-        let paths = tsx_paths_from_urls(&urls);
-        assert_eq!(paths.len(), 2);
+        let paths = supported_paths_from_urls(&urls);
+        assert_eq!(paths.len(), 3);
         assert_eq!(paths[0], PathBuf::from("/tmp/hello.tsx"));
         assert_eq!(paths[1], PathBuf::from("/tmp/app.tsx"));
+        assert_eq!(paths[2], PathBuf::from("/tmp/widget.jsx"));
     }
 
     #[test]
-    fn tsx_paths_from_urls_returns_empty_for_no_tsx() {
+    fn supported_paths_from_urls_returns_empty_for_unsupported() {
         let urls: Vec<tauri::Url> = vec![
             "file:///tmp/readme.md".parse().unwrap(),
             "https://example.com/foo.tsx".parse().unwrap(),
         ];
-        assert!(tsx_paths_from_urls(&urls).is_empty());
+        assert!(supported_paths_from_urls(&urls).is_empty());
     }
 
     #[test]
-    fn tsx_paths_from_urls_handles_empty_input() {
-        assert!(tsx_paths_from_urls(&[]).is_empty());
+    fn supported_paths_from_urls_handles_empty_input() {
+        assert!(supported_paths_from_urls(&[]).is_empty());
     }
 
     #[test]
-    fn tsx_paths_from_urls_accepts_mixed_case_extensions() {
+    fn supported_paths_from_urls_accepts_mixed_case_extensions() {
         let urls: Vec<tauri::Url> = vec![
             "file:///tmp/App.TSX".parse().unwrap(),
             "file:///tmp/Page.Tsx".parse().unwrap(),
+            "file:///tmp/Widget.JSX".parse().unwrap(),
         ];
-        let paths = tsx_paths_from_urls(&urls);
-        assert_eq!(paths.len(), 2);
-        assert_eq!(paths[0], PathBuf::from("/tmp/App.TSX"));
-        assert_eq!(paths[1], PathBuf::from("/tmp/Page.Tsx"));
+        let paths = supported_paths_from_urls(&urls);
+        assert_eq!(paths.len(), 3);
     }
 }

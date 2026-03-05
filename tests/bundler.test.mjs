@@ -71,6 +71,22 @@ describe('bundler.mjs', () => {
     });
   });
 
+  describe('simple JSX bundling', () => {
+    it('bundles a JSX React component with useState', () => {
+      const output = runBundler('simple-counter.jsx');
+      expect(output).toBeTruthy();
+      expect(output.length).toBeGreaterThan(100);
+      expect(output).toContain('createElement');
+      expect(output).toContain('createRoot');
+    });
+
+    it('produces valid JavaScript (no JSX syntax remaining)', () => {
+      const output = runBundler('simple-counter.jsx');
+      expect(output).not.toContain('<div className=');
+      expect(output).not.toContain('onClick={() =>');
+    });
+  });
+
   describe('self-rendering wrapper', () => {
     it('includes createRoot mount code for default exports', () => {
       const output = runBundler('simple-counter.tsx');
@@ -106,6 +122,36 @@ describe('bundler.mjs', () => {
       const output = runBundler('with-external-dep.tsx');
       expect(output).toBeTruthy();
       expect(output.length).toBeGreaterThan(100);
+      expect(output).toContain('createRoot');
+    });
+
+    it('bundles lucide-react icons', () => {
+      const output = runBundler('with-external-dep.tsx');
+      expect(output).toBeTruthy();
+      expect(output).toContain('createRoot');
+    });
+
+    it('bundles recharts', () => {
+      const output = runBundler('with-recharts.tsx');
+      expect(output).toBeTruthy();
+      expect(output).toContain('createRoot');
+    });
+
+    it('bundles framer-motion', () => {
+      const output = runBundler('with-framer-motion.tsx');
+      expect(output).toBeTruthy();
+      expect(output).toContain('createRoot');
+    });
+
+    it('bundles date-fns', () => {
+      const output = runBundler('with-date-fns.tsx');
+      expect(output).toBeTruthy();
+      expect(output).toContain('createRoot');
+    });
+
+    it('bundles clsx and tailwind-merge', () => {
+      const output = runBundler('with-clsx.tsx');
+      expect(output).toBeTruthy();
       expect(output).toContain('createRoot');
     });
   });

@@ -173,18 +173,18 @@ listen('tauri://drag-drop', (event) => {
   const paths = event.payload.paths;
   if (!paths || paths.length === 0) return;
 
-  const tsxFiles = paths.filter(p => p.endsWith('.tsx'));
-  if (tsxFiles.length === 0) {
-    showError('Only .tsx files are supported');
+  const supported = paths.filter(p => p.endsWith('.tsx') || p.endsWith('.jsx'));
+  if (supported.length === 0) {
+    showError('Only .tsx and .jsx files are supported');
     return;
   }
 
   if (fileLoaded) {
-    invoke('open_in_new_windows', { paths: tsxFiles });
+    invoke('open_in_new_windows', { paths: supported });
   } else {
-    openFileByPath(tsxFiles[0]);
-    if (tsxFiles.length > 1) {
-      invoke('open_in_new_windows', { paths: tsxFiles.slice(1) });
+    openFileByPath(supported[0]);
+    if (supported.length > 1) {
+      invoke('open_in_new_windows', { paths: supported.slice(1) });
     }
   }
 });
@@ -246,7 +246,7 @@ function renderPlantShelf(recentFiles) {
     const name = document.createElement('span');
     name.className = 'plant-name';
     const filename = file.path.split('/').pop() || file.path;
-    name.textContent = filename.replace(/\.tsx$/, '');
+    name.textContent = filename.replace(/\.(tsx|jsx)$/, '');
     item.appendChild(name);
 
     item.addEventListener('click', () => {
@@ -264,3 +264,85 @@ function loadPlantShelf() {
 }
 
 loadPlantShelf();
+
+// --- Update notification ---
+
+const updateToast = document.getElementById('update-toast');
+const updateMessage = document.getElementById('update-toast-message');
+const updateActions = document.getElementById('update-toast-actions');
+
+function clearChildren(el) {
+  while (el.firstChild) el.removeChild(el.firstChild);
+}
+
+function createBtn(text, className, onClick) {
+  const btn = document.createElement('button');
+  btn.className = className;
+  btn.textContent = text;
+  btn.addEventListener('click', onClick);
+  return btn;
+}
+
+function showUpdateAvailable(version) {
+  if (!updateToast || !updateMessage || !updateActions) return;
+  updateMessage.textContent = 'Terrarium v' + version + ' is available.';
+  clearChildren(updateActions);
+
+  updateActions.appendChild(createBtn('Update', 'update-primary-btn', () => {
+    showUpdateDownloading();
+    invoke('download_update').catch(err => showUpdateError(err));
+  }));
+  updateActions.appendChild(createBtn('\u00d7', 'update-dismiss-btn', () => {
+    updateToast.classList.remove('visible');
+  }));
+  updateToast.classList.add('visible');
+}
+
+function showUpdateDownloading() {
+  if (!updateMessage || !updateActions) return;
+  clearChildren(updateMessage);
+  const spinner = document.createElement('span');
+  spinner.className = 'update-spinner';
+  updateMessage.appendChild(spinner);
+  updateMessage.appendChild(document.createTextNode('Downloading update\u2026'));
+  clearChildren(updateActions);
+}
+
+function showUpdateReady() {
+  if (!updateMessage || !updateActions) return;
+  updateMessage.textContent = 'Update downloaded. Restart now?';
+  clearChildren(updateActions);
+
+  updateActions.appendChild(createBtn('Restart', 'update-primary-btn', () => {
+    invoke('restart_app').catch(() => {});
+  }));
+  updateActions.appendChild(createBtn('Later', 'update-dismiss-btn', () => {
+    updateToast.classList.remove('visible');
+  }));
+}
+
+function showUpdateError(err) {
+  if (!updateMessage || !updateActions) return;
+  updateMessage.textContent = 'Update failed. Try again?';
+  clearChildren(updateActions);
+
+  updateActions.appendChild(createBtn('Try Again', 'update-primary-btn', () => {
+    showUpdateDownloading();
+    invoke('download_update').catch(e => showUpdateError(e));
+  }));
+  updateActions.appendChild(createBtn('\u00d7', 'update-dismiss-btn', () => {
+    updateToast.classList.remove('visible');
+  }));
+}
+
+listen('update-available', (event) => {
+  showUpdateAvailable(event.payload);
+});
+
+listen('update-downloaded', () => {
+  showUpdateReady();
+});
+
+listen('update-error', (event) => {
+  showUpdateError(event.payload);
+});
