@@ -10,6 +10,7 @@ All notable changes to Terrarium are documented in this file.
 - Load all files when dropping multiple files (#12)
 - Use emit_to for targeted window events in multi-file opens (#13)
 - Improve release notes generation with safer file-based approach (#17)
+- Add fetch-depth 0 to update-homebrew for git-cliff
 
 ### Documentation
 
@@ -21,6 +22,10 @@ All notable changes to Terrarium are documented in this file.
 - Add JSX support alongside TSX (#18)
 - Pre-install common dependencies for instant artifact rendering (#16)
 - Add auto-update notification on app open (#19)
+
+### Refactoring
+
+- Simplify git-cliff steps in publish workflow
 
 ## [0.2.2] - 2026-02-20
 
