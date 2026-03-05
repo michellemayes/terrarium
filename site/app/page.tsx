@@ -496,7 +496,7 @@ function DownloadCTA() {
         <Reveal delay={200}>
           <p className="text-[#6b5a8a] mb-6 text-sm">or download the latest release</p>
           <a
-            href="https://github.com/michellemayes/terrarium/releases"
+            href="https://github.com/michellemayes/terrarium/releases/latest"
             className="btn-primary text-base px-9 py-4"
           >
             <AppleIcon />
@@ -521,7 +521,7 @@ function Footer() {
           <a href="https://github.com/michellemayes/terrarium" className="hover:text-[#c4b5fd] transition-colors">
             GitHub
           </a>
-          <a href="https://github.com/michellemayes/terrarium/releases" className="hover:text-[#c4b5fd] transition-colors">
+          <a href="https://github.com/michellemayes/terrarium/releases/latest" className="hover:text-[#c4b5fd] transition-colors">
             Releases
           </a>
           <a href="https://github.com/michellemayes/terrarium/blob/master/LICENSE" className="hover:text-[#c4b5fd] transition-colors">
