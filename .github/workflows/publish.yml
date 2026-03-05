@@ -144,7 +144,7 @@ jobs:
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
           git add homebrew/terrarium.rb CHANGELOG.md
-          git diff --cached --quiet || git commit -m "chore: update Homebrew formula and changelog for ${GITHUB_REF_NAME}"
+          git diff --cached --quiet || git commit -m "chore: release housekeeping for ${GITHUB_REF_NAME}"
           git push
 
   release-notes:
