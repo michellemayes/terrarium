@@ -95,6 +95,18 @@ terrarium dashboard.tsx
 claude "add a dark mode toggle to dashboard.tsx"
 ```
 
+## Landing Page
+
+The marketing site lives in `site/` and is built with Next.js + Tailwind CSS.
+
+```bash
+cd site
+pnpm install
+pnpm dev
+```
+
+Deployed to Vercel with the root directory set to `site`.
+
 ## Development
 
 ```bash
