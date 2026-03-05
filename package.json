@@ -8,13 +8,18 @@
     "tauri": "tauri",
     "test": "vitest run",
     "test:watch": "vitest",
-    "test:coverage": "vitest run --coverage"
+    "test:coverage": "vitest run --coverage",
+    "prepare": "husky",
+    "changelog": "git cliff --output CHANGELOG.md"
   },
   "devDependencies": {
+    "@commitlint/cli": "^20.4.3",
+    "@commitlint/config-conventional": "^20.4.3",
     "@tauri-apps/cli": "^2",
-    "vitest": "^3.0.0",
+    "@vitest/coverage-v8": "^3.0.0",
+    "husky": "^9.1.7",
     "jsdom": "^25.0.0",
-    "@vitest/coverage-v8": "^3.0.0"
+    "vitest": "^3.0.0"
   },
   "dependencies": {
     "@tauri-apps/api": "^2"
