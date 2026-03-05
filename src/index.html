@@ -313,6 +313,65 @@
       color: #6b5a8a;
       font-style: italic;
     }
+    #update-toast {
+      display: none;
+      position: fixed;
+      bottom: 20px;
+      right: 20px;
+      background: linear-gradient(135deg, #2d1854, #1e1035);
+      border: 1px solid #7c3aed;
+      border-radius: 10px;
+      padding: 14px 18px;
+      z-index: 10001;
+      box-shadow: 0 4px 24px rgba(0, 0, 0, 0.4);
+      color: #c4b5fd;
+      font-size: 13px;
+      max-width: 300px;
+      animation: toast-in 0.3s ease-out;
+    }
+    #update-toast.visible { display: block; }
+    @keyframes toast-in {
+      from { opacity: 0; transform: translateY(10px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+    #update-toast-message {
+      margin-bottom: 10px;
+      line-height: 1.4;
+    }
+    #update-toast-actions {
+      display: flex;
+      gap: 8px;
+      align-items: center;
+    }
+    #update-toast-actions button {
+      border: none;
+      border-radius: 6px;
+      padding: 6px 14px;
+      font-size: 12px;
+      cursor: pointer;
+      font-weight: 500;
+    }
+    .update-primary-btn {
+      background: linear-gradient(135deg, #7c3aed, #6d28d9);
+      color: #fff;
+    }
+    .update-primary-btn:hover { background: linear-gradient(135deg, #8b5cf6, #7c3aed); }
+    .update-dismiss-btn {
+      background: rgba(255, 255, 255, 0.1);
+      color: #8b7aab;
+    }
+    .update-dismiss-btn:hover { background: rgba(255, 255, 255, 0.15); color: #c4b5fd; }
+    .update-spinner {
+      display: inline-block;
+      width: 12px;
+      height: 12px;
+      border: 2px solid #7c3aed;
+      border-top-color: #c4b5fd;
+      border-radius: 50%;
+      animation: spin 0.8s linear infinite;
+      vertical-align: middle;
+      margin-right: 6px;
+    }
   </style>
 </head>
 <body>
@@ -412,6 +471,10 @@
       <button id="error-toggle">&#9660;</button>
     </div>
     <pre id="error-detail"></pre>
+  </div>
+  <div id="update-toast">
+    <div id="update-toast-message"></div>
+    <div id="update-toast-actions"></div>
   </div>
   <div id="plant-templates" style="display:none;">
     <!-- Plant 0: Round cactus -->

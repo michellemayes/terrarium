@@ -29,7 +29,7 @@ jobs:
       - name: Pre-install bundler dependencies
         run: npm install --prefix ~/.terrarium react react-dom esbuild
       - name: Run tests
-        run: cd src-tauri && cargo test
+        run: cd src-tauri && cargo test -- --test-threads=1
 
   test-node:
     runs-on: macos-latest
