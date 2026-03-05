@@ -449,7 +449,7 @@ function CodeDemo() {
           <div className="mt-8 flex justify-center">
             <div className="glass rounded-xl px-6 py-3 font-mono text-sm">
               <span className="text-[#6b5a8a]">$</span>{' '}
-              <span className="text-violet-300">open</span>{' '}
+              <span className="text-violet-300">terrarium</span>{' '}
               <span className="text-[#c4b5fd]">counter.tsx</span>
             </div>
           </div>
