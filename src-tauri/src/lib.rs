@@ -115,7 +115,7 @@ async fn pick_and_open_files(
     };
 
     for tsx_path in &remaining {
-        if !tsx_path.exists() || !is_supported_ext(&tsx_path) {
+        if !tsx_path.exists() || !is_supported_ext(tsx_path) {
             continue;
         }
         let new_label = next_label(&state);
