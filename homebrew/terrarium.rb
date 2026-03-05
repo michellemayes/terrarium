@@ -1,12 +1,12 @@
 cask "terrarium" do
-  version "0.2.2"
+  version "0.3.0"
 
   if Hardware::CPU.arm?
     url "https://github.com/michellemayes/terrarium/releases/download/v#{version}/Terrarium_#{version}_aarch64.dmg"
-    sha256 "09482498179efce11d5836f135f4a4816bf8ac64854c9573f3e9d8650da9a607"
+    sha256 "13177b1fc3b3b94267a6b08e361afdd6afcecf45d449bc6e14083345c676e34e"
   else
     url "https://github.com/michellemayes/terrarium/releases/download/v#{version}/Terrarium_#{version}_x64.dmg"
-    sha256 "2f2cb3b3bcb0dfd9719fb3fb8d2c5cdca8a0562979ff7ca7b8a7df756f862d02"
+    sha256 "7709f2e42ef52ef926f974dde497e61676307f60453cfb9dd5e7eeb7f5ce3fa2"
   end
 
   name "Terrarium"
