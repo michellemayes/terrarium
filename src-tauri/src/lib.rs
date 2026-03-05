@@ -291,9 +291,7 @@ async fn download_update(
         .take()
         .ok_or_else(|| "No update available".to_string())?;
 
-    let result = update
-        .download_and_install(|_, _| {}, || {})
-        .await;
+    let result = update.download_and_install(|_, _| {}, || {}).await;
 
     match result {
         Ok(()) => {
