@@ -1,6 +1,6 @@
 {
   "name": "terrarium",
-  "version": "0.2.2",
+  "version": "0.3.0",
   "private": true,
   "packageManager": "pnpm@10.25.0",
   "description": "A tiny terrarium to view your TSX components",
