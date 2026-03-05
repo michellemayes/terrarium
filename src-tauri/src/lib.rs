@@ -13,7 +13,11 @@ const SUPPORTED_EXTENSIONS: &[&str] = &["tsx", "jsx"];
 fn is_supported_ext(path: &Path) -> bool {
     path.extension()
         .and_then(|e| e.to_str())
-        .map(|e| SUPPORTED_EXTENSIONS.iter().any(|ext| e.eq_ignore_ascii_case(ext)))
+        .map(|e| {
+            SUPPORTED_EXTENSIONS
+                .iter()
+                .any(|ext| e.eq_ignore_ascii_case(ext))
+        })
         .unwrap_or(false)
 }
 
