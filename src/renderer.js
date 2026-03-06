@@ -6,7 +6,8 @@ const errorBanner = document.getElementById('error-banner');
 const errorDetail = document.getElementById('error-detail');
 const errorToggle = document.getElementById('error-toggle');
 const dropOverlay = document.getElementById('drop-overlay');
-const installBanner = document.getElementById('install-banner');
+const progressBar = document.getElementById('progress-bar');
+const progressStatus = document.getElementById('progress-status');
 const nodeBanner = document.getElementById('node-banner');
 const nodeBannerText = document.getElementById('node-banner-text');
 const nodeBannerLink = document.getElementById('node-banner-link');
@@ -156,12 +157,19 @@ listen('bundle-error', (event) => {
   showError(event.payload);
 });
 
-listen('install-started', () => {
-  installBanner.classList.add('visible');
+listen('bundle-started', () => {
+  progressBar.classList.add('visible');
+  progressStatus.textContent = 'Loading...';
+  progressStatus.classList.add('visible');
 });
 
-listen('install-finished', () => {
-  installBanner.classList.remove('visible');
+listen('bundle-progress', (event) => {
+  progressStatus.textContent = event.payload;
+});
+
+listen('bundle-finished', () => {
+  progressBar.classList.remove('visible');
+  progressStatus.classList.remove('visible');
 });
 
 listen('menu-open-file', () => {

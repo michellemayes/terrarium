@@ -10,6 +10,10 @@ const CACHE_DIR = process.env.TERRARIUM_CACHE_DIR || path.join(os.homedir(), '.t
 const NODE_MODULES = path.join(CACHE_DIR, 'node_modules');
 const NETWORK_MARKERS = ['ENOTFOUND', 'ENETUNREACH', 'ETIMEDOUT', 'EAI_AGAIN', 'ECONNREFUSED'];
 
+function progress(phase, message) {
+  console.error(JSON.stringify({ progress: true, phase, message }));
+}
+
 export function ensureCacheDir() {
   fs.mkdirSync(CACHE_DIR, { recursive: true });
   const pkgPath = path.join(CACHE_DIR, 'package.json');
@@ -98,7 +102,11 @@ export async function bundle(inputFile) {
     'tailwind-merge',
     'class-variance-authority',
   ];
-  installPackages(basePackages.filter(p => !isInstalled(p)));
+  const toInstall = basePackages.filter(p => !isInstalled(p));
+  if (toInstall.length > 0) {
+    progress('installing', `Installing ${toInstall.join(', ')}...`);
+  }
+  installPackages(toInstall);
 
   const esbuildPath = path.join(NODE_MODULES, 'esbuild', 'lib', 'main.js');
   const esbuild = await import(esbuildPath);
@@ -119,6 +127,8 @@ export async function bundle(inputFile) {
     }
   };
 
+  progress('detecting', 'Scanning imports...');
+
   await esbuild.build({
     entryPoints: [resolvedInput],
     bundle: true,
@@ -132,6 +142,9 @@ export async function bundle(inputFile) {
     logLevel: 'silent'
   });
 
+  if (missing.size > 0) {
+    progress('installing', `Installing ${[...missing].join(', ')}...`);
+  }
   installPackages([...missing]);
 
   const entryCode = `
@@ -154,6 +167,8 @@ export async function bundle(inputFile) {
     }
   `;
 
+  progress('bundling', 'Bundling component...');
+
   const result = await esbuild.build({
     stdin: {
       contents: entryCode,
@@ -173,6 +188,8 @@ export async function bundle(inputFile) {
   });
 
   const bundledJs = result.outputFiles[0].text;
+
+  progress('styling', 'Generating styles...');
 
   let css = '';
   try {

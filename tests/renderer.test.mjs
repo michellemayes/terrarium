@@ -218,25 +218,35 @@ describe('renderer', () => {
       const { listeners } = createRendererEnv();
       const expected = ['bundle-ready', 'bundle-error', 'menu-open-file',
         'tauri://drag-drop', 'tauri://drag-enter', 'tauri://drag-leave',
-        'install-started', 'install-finished'];
+        'bundle-started', 'bundle-progress', 'bundle-finished'];
       for (const event of expected) {
         expect(listeners[event], `missing listener for ${event}`).toBeDefined();
       }
     });
   });
 
-  describe('install banner', () => {
-    it('shows install banner on install-started', () => {
+  describe('progress bar', () => {
+    it('shows progress bar and status on bundle-started', () => {
       const { document, emit } = createRendererEnv();
-      emit('install-started');
-      expect(document.getElementById('install-banner').classList.contains('visible')).toBe(true);
+      emit('bundle-started');
+      expect(document.getElementById('progress-bar').classList.contains('visible')).toBe(true);
+      expect(document.getElementById('progress-status').classList.contains('visible')).toBe(true);
+      expect(document.getElementById('progress-status').textContent).toBe('Loading...');
     });
 
-    it('hides install banner on install-finished', () => {
+    it('updates status text on bundle-progress', () => {
       const { document, emit } = createRendererEnv();
-      emit('install-started');
-      emit('install-finished');
-      expect(document.getElementById('install-banner').classList.contains('visible')).toBe(false);
+      emit('bundle-started');
+      emit('bundle-progress', 'Installing recharts...');
+      expect(document.getElementById('progress-status').textContent).toBe('Installing recharts...');
+    });
+
+    it('hides progress bar and status on bundle-finished', () => {
+      const { document, emit } = createRendererEnv();
+      emit('bundle-started');
+      emit('bundle-finished');
+      expect(document.getElementById('progress-bar').classList.contains('visible')).toBe(false);
+      expect(document.getElementById('progress-status').classList.contains('visible')).toBe(false);
     });
   });
 
