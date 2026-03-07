@@ -1,4 +1,5 @@
 import { Reveal } from './components/reveal'
+import { DemoCounter } from './components/demo-counter'
 
 /* ─── SVG Components ───────────────────────────────────── */
 
@@ -428,17 +429,7 @@ function CodeDemo() {
                   <span className="ml-2 text-xs text-[#6b5a8a] font-mono">Terrarium</span>
                 </div>
                 <div className="flex-1 flex items-center justify-center">
-                  <div className="text-center">
-                    <div className="glass rounded-2xl px-12 py-6 inline-block mb-6">
-                      <span className="text-3xl font-semibold text-[#e9d5ff] tabular-nums">
-                        Count: 42
-                      </span>
-                    </div>
-                    <p className="text-xs text-[#6b5a8a] font-mono flex items-center justify-center gap-1.5">
-                      <span className="w-1.5 h-1.5 rounded-full bg-green-400/80" />
-                      Live — watching counter.tsx
-                    </p>
-                  </div>
+                  <DemoCounter />
                 </div>
               </div>
             </div>
