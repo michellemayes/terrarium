@@ -7,7 +7,24 @@ on:
     branches: [master]
 
 jobs:
+  changes:
+    runs-on: ubuntu-latest
+    outputs:
+      rust: ${{ steps.filter.outputs.rust }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dorny/paths-filter@v3
+        id: filter
+        with:
+          filters: |
+            rust:
+              - 'src-tauri/**'
+              - 'Cargo.toml'
+              - 'Cargo.lock'
+
   check-rust:
+    needs: changes
+    if: needs.changes.outputs.rust == 'true'
     runs-on: macos-latest
     steps:
       - uses: actions/checkout@v4
