@@ -1,14 +1,18 @@
-use std::path::PathBuf;
+use std::path::Path;
 use std::sync::Mutex;
 
 use rusqlite::{params, Connection, OptionalExtension};
 
+/// SQLite-backed key-value store for artifact persistent storage.
+/// Storage is scoped per file path, matching Claude's per-artifact isolation.
 pub struct StorageDb {
     conn: Mutex<Connection>,
 }
 
 impl StorageDb {
-    pub fn open(db_path: &PathBuf) -> Result<Self, String> {
+    /// Opens (or creates) the storage database at the given path and ensures
+    /// the schema exists.
+    pub fn open(db_path: &Path) -> Result<Self, String> {
         let conn = Connection::open(db_path).map_err(|e| e.to_string())?;
         conn.execute_batch(
             "CREATE TABLE IF NOT EXISTS artifact_storage (
@@ -25,6 +29,7 @@ impl StorageDb {
         })
     }
 
+    /// Returns the value for a key scoped to a file path, or `None` if not set.
     pub fn get(&self, file_path: &str, key: &str) -> Result<Option<String>, String> {
         let conn = self.conn.lock().map_err(|e| e.to_string())?;
         conn.query_row(
@@ -36,6 +41,7 @@ impl StorageDb {
         .map_err(|e| e.to_string())
     }
 
+    /// Sets a key-value pair scoped to a file path. Overwrites if the key exists.
     pub fn set(&self, file_path: &str, key: &str, value: &str) -> Result<(), String> {
         let conn = self.conn.lock().map_err(|e| e.to_string())?;
         conn.execute(
@@ -48,6 +54,7 @@ impl StorageDb {
         Ok(())
     }
 
+    /// Removes a key-value pair. No-op if the key doesn't exist.
     pub fn remove(&self, file_path: &str, key: &str) -> Result<(), String> {
         let conn = self.conn.lock().map_err(|e| e.to_string())?;
         conn.execute(
