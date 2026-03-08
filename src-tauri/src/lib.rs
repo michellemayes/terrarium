@@ -55,10 +55,7 @@ async fn open_file(
     let filename = tsx_path.file_name().unwrap_or_default().to_string_lossy();
     let _ = window.set_title(&format!("{filename} — Terrarium"));
     if let Some(wv) = app.get_webview_window(&label) {
-        let _ = wv.eval(&format!(
-            "window.__TERRARIUM_FILE_PATH__ = {};",
-            serde_json::to_string(&path).unwrap_or_default()
-        ));
+        set_file_path_on_window(&wv, &path);
     }
 
     let bundle_result = bundler::bundle_tsx(&app, &tsx_path).await;
@@ -188,6 +185,15 @@ fn next_label(state: &AppState) -> String {
     label
 }
 
+/// Sets `window.__TERRARIUM_FILE_PATH__` on a webview so the storage shim
+/// knows which file's storage namespace to use.
+fn set_file_path_on_window(window: &tauri::WebviewWindow, path: &str) {
+    let _ = window.eval(&format!(
+        "window.__TERRARIUM_FILE_PATH__ = {};",
+        serde_json::to_string(path).unwrap_or_default()
+    ));
+}
+
 fn create_window(app: &tauri::AppHandle, label: &str) -> Result<tauri::WebviewWindow, String> {
     tauri::WebviewWindowBuilder::new(app, label, tauri::WebviewUrl::App("index.html".into()))
         .title("Terrarium")
@@ -205,11 +211,7 @@ fn spawn_bundle_and_watch(app: tauri::AppHandle, path: PathBuf, label: String) {
                 if let Some(w) = app.get_webview_window(&label) {
                     let filename = path.file_name().unwrap_or_default().to_string_lossy();
                     let _ = w.set_title(&format!("{filename} — Terrarium"));
-                    let path_str = path.to_string_lossy().to_string();
-                    let _ = w.eval(&format!(
-                        "window.__TERRARIUM_FILE_PATH__ = {};",
-                        serde_json::to_string(&path_str).unwrap_or_default()
-                    ));
+                    set_file_path_on_window(&w, &path.to_string_lossy());
                 }
                 let _ = app.emit_to(&label, "bundle-ready", bundle);
             }
@@ -540,11 +542,7 @@ pub fn run() {
                         if let Some(window) = app.get_webview_window("main") {
                             let name = tsx_path.file_name().unwrap_or_default().to_string_lossy();
                             let _ = window.set_title(&format!("{name} — Terrarium"));
-                            let path_str = tsx_path.to_string_lossy().to_string();
-                            let _ = window.eval(&format!(
-                                "window.__TERRARIUM_FILE_PATH__ = {};",
-                                serde_json::to_string(&path_str).unwrap_or_default()
-                            ));
+                            set_file_path_on_window(&window, &tsx_path.to_string_lossy());
                         }
                         spawn_bundle_and_watch(app.clone(), tsx_path, "main".to_string());
                     }
@@ -574,11 +572,7 @@ pub fn run() {
                         }
                         let filename = tsx_path.file_name().unwrap_or_default().to_string_lossy();
                         let _ = window.set_title(&format!("{filename} — Terrarium"));
-                        let path_str = tsx_path.to_string_lossy().to_string();
-                        let _ = window.eval(&format!(
-                            "window.__TERRARIUM_FILE_PATH__ = {};",
-                            serde_json::to_string(&path_str).unwrap_or_default()
-                        ));
+                        set_file_path_on_window(&window, &tsx_path.to_string_lossy());
                         spawn_bundle_and_watch(app.clone(), tsx_path, label);
                     }
                 }
