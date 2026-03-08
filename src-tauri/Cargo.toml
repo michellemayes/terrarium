@@ -24,6 +24,7 @@ notify = { version = "7", features = ["macos_fsevent"] }
 tokio = { version = "1", features = ["rt-multi-thread", "macros", "process"] }
 log = "0.4"
 dirs = "6"
+rusqlite = { version = "0.31", features = ["bundled"] }
 
 [dev-dependencies]
 tauri = { version = "2", features = ["test"] }
