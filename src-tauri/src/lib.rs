@@ -1,5 +1,6 @@
 pub mod bundler;
 pub mod recent;
+pub mod storage;
 pub mod watcher;
 
 use std::collections::HashMap;
@@ -53,6 +54,9 @@ async fn open_file(
     let label = window.label().to_string();
     let filename = tsx_path.file_name().unwrap_or_default().to_string_lossy();
     let _ = window.set_title(&format!("{filename} — Terrarium"));
+    if let Some(wv) = app.get_webview_window(&label) {
+        set_file_path_on_window(&wv, &path);
+    }
 
     let bundle_result = bundler::bundle_tsx(&app, &tsx_path).await;
 
@@ -181,10 +185,20 @@ fn next_label(state: &AppState) -> String {
     label
 }
 
+/// Sets `window.__TERRARIUM_FILE_PATH__` on a webview so the storage shim
+/// knows which file's storage namespace to use.
+fn set_file_path_on_window(window: &tauri::WebviewWindow, path: &str) {
+    let _ = window.eval(format!(
+        "window.__TERRARIUM_FILE_PATH__ = {};",
+        serde_json::to_string(path).unwrap_or_default()
+    ));
+}
+
 fn create_window(app: &tauri::AppHandle, label: &str) -> Result<tauri::WebviewWindow, String> {
     tauri::WebviewWindowBuilder::new(app, label, tauri::WebviewUrl::App("index.html".into()))
         .title("Terrarium")
         .inner_size(800.0, 600.0)
+        .initialization_script(include_str!("../resources/storage-shim.js"))
         .build()
         .map_err(|e| format!("Failed to create window: {e}"))
 }
@@ -197,6 +211,7 @@ fn spawn_bundle_and_watch(app: tauri::AppHandle, path: PathBuf, label: String) {
                 if let Some(w) = app.get_webview_window(&label) {
                     let filename = path.file_name().unwrap_or_default().to_string_lossy();
                     let _ = w.set_title(&format!("{filename} — Terrarium"));
+                    set_file_path_on_window(&w, &path.to_string_lossy());
                 }
                 let _ = app.emit_to(&label, "bundle-ready", bundle);
             }
@@ -329,6 +344,10 @@ pub fn run() {
             next_window_id: Mutex::new(2),
         })
         .manage(UpdateState { pending_update: Mutex::new(None) })
+        .manage({
+            let db_path = bundler::cache_dir().join("storage.db");
+            storage::StorageDb::open(&db_path).expect("Failed to open storage database")
+        })
         .invoke_handler(tauri::generate_handler![
             open_file,
             pick_and_open_files,
@@ -340,6 +359,9 @@ pub fn run() {
             get_recent_files,
             download_update,
             restart_app,
+            storage::storage_get,
+            storage::storage_set,
+            storage::storage_remove,
         ])
         .menu(|handle| {
             let open_item = tauri::menu::MenuItemBuilder::with_id("open-file", "Open...")
@@ -465,6 +487,9 @@ pub fn run() {
                     }
                 }
             });
+            if let Some(main_window) = app.get_webview_window("main") {
+                let _ = main_window.eval(include_str!("../resources/storage-shim.js"));
+            }
             Ok(())
         })
         .on_window_event(|window, event| {
@@ -517,6 +542,7 @@ pub fn run() {
                         if let Some(window) = app.get_webview_window("main") {
                             let name = tsx_path.file_name().unwrap_or_default().to_string_lossy();
                             let _ = window.set_title(&format!("{name} — Terrarium"));
+                            set_file_path_on_window(&window, &tsx_path.to_string_lossy());
                         }
                         spawn_bundle_and_watch(app.clone(), tsx_path, "main".to_string());
                     }
@@ -546,6 +572,7 @@ pub fn run() {
                         }
                         let filename = tsx_path.file_name().unwrap_or_default().to_string_lossy();
                         let _ = window.set_title(&format!("{filename} — Terrarium"));
+                        set_file_path_on_window(&window, &tsx_path.to_string_lossy());
                         spawn_bundle_and_watch(app.clone(), tsx_path, label);
                     }
                 }
