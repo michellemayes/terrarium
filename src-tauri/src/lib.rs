@@ -188,7 +188,7 @@ fn next_label(state: &AppState) -> String {
 /// Sets `window.__TERRARIUM_FILE_PATH__` on a webview so the storage shim
 /// knows which file's storage namespace to use.
 fn set_file_path_on_window(window: &tauri::WebviewWindow, path: &str) {
-    let _ = window.eval(&format!(
+    let _ = window.eval(format!(
         "window.__TERRARIUM_FILE_PATH__ = {};",
         serde_json::to_string(path).unwrap_or_default()
     ));
