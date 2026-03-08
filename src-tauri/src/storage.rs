@@ -66,6 +66,36 @@ impl StorageDb {
     }
 }
 
+use tauri::State;
+
+#[tauri::command]
+pub async fn storage_get(
+    db: State<'_, StorageDb>,
+    file_path: String,
+    key: String,
+) -> Result<Option<String>, String> {
+    db.get(&file_path, &key)
+}
+
+#[tauri::command]
+pub async fn storage_set(
+    db: State<'_, StorageDb>,
+    file_path: String,
+    key: String,
+    value: String,
+) -> Result<(), String> {
+    db.set(&file_path, &key, &value)
+}
+
+#[tauri::command]
+pub async fn storage_remove(
+    db: State<'_, StorageDb>,
+    file_path: String,
+    key: String,
+) -> Result<(), String> {
+    db.remove(&file_path, &key)
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;

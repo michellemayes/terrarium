@@ -330,6 +330,10 @@ pub fn run() {
             next_window_id: Mutex::new(2),
         })
         .manage(UpdateState { pending_update: Mutex::new(None) })
+        .manage({
+            let db_path = bundler::cache_dir().join("storage.db");
+            storage::StorageDb::open(&db_path).expect("Failed to open storage database")
+        })
         .invoke_handler(tauri::generate_handler![
             open_file,
             pick_and_open_files,
@@ -341,6 +345,9 @@ pub fn run() {
             get_recent_files,
             download_update,
             restart_app,
+            storage::storage_get,
+            storage::storage_set,
+            storage::storage_remove,
         ])
         .menu(|handle| {
             let open_item = tauri::menu::MenuItemBuilder::with_id("open-file", "Open...")
