@@ -1,5 +1,6 @@
 pub mod bundler;
 pub mod recent;
+pub mod storage;
 pub mod watcher;
 
 use std::collections::HashMap;
