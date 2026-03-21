@@ -274,8 +274,8 @@ function Hero() {
 
       {/* Scroll hint */}
       <div className="absolute bottom-10 animate-fade-up-4">
-        <div className="w-5 h-8 rounded-full border border-[color:var(--color-text-muted)]/30 flex items-start justify-center p-1.5">
-          <div className="w-1 h-2 rounded-full bg-[var(--color-text-muted)]/50 animate-scroll-hint" />
+        <div className="w-5 h-8 rounded-full border border-violet-400/20 flex items-start justify-center p-1.5">
+          <div className="w-1 h-2 rounded-full bg-violet-400/40 animate-scroll-hint" />
         </div>
       </div>
     </section>
@@ -404,10 +404,10 @@ function CodeDemo() {
 
       <div className="relative mx-auto max-w-5xl">
         <Reveal>
-          <h2 className="font-serif text-4xl md:text-5xl text-center mb-3">
+          <h2 className="font-serif text-4xl md:text-5xl mb-3">
             From file to render
           </h2>
-          <p className="text-muted text-center text-lg mb-16">
+          <p className="text-muted text-lg mb-16">
             in milliseconds.
           </p>
         </Reveal>
