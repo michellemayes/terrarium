@@ -108,6 +108,8 @@ window.toggleError = function() {
   detailExpanded = !detailExpanded;
   errorDetail.style.display = detailExpanded ? 'block' : 'none';
   errorToggle.textContent = detailExpanded ? '\u25BC' : '\u25B6';
+  const errorHeader = document.getElementById('error-header');
+  if (errorHeader) errorHeader.setAttribute('aria-expanded', String(detailExpanded));
 };
 
 async function renderBundle(bundledCode) {
