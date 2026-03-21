@@ -217,77 +217,104 @@
   contain-intrinsic-size: auto 800px;
 }
 
-/* ─── Animated gradient mesh (@property for animatable gradients) ─── */
+/* ─── Animated gradient mesh — nighttime cloud layers ─── */
 @property --mesh-x1 {
   syntax: '<percentage>';
   inherits: false;
-  initial-value: 20%;
+  initial-value: 15%;
 }
 @property --mesh-y1 {
   syntax: '<percentage>';
   inherits: false;
-  initial-value: 30%;
+  initial-value: 28%;
 }
 @property --mesh-x2 {
   syntax: '<percentage>';
   inherits: false;
-  initial-value: 75%;
+  initial-value: 80%;
 }
 @property --mesh-y2 {
   syntax: '<percentage>';
   inherits: false;
-  initial-value: 20%;
+  initial-value: 22%;
 }
 @property --mesh-x3 {
   syntax: '<percentage>';
   inherits: false;
-  initial-value: 50%;
+  initial-value: 45%;
 }
 @property --mesh-y3 {
   syntax: '<percentage>';
   inherits: false;
-  initial-value: 75%;
+  initial-value: 70%;
+}
+@property --mesh-x4 {
+  syntax: '<percentage>';
+  inherits: false;
+  initial-value: 65%;
+}
+@property --mesh-y4 {
+  syntax: '<percentage>';
+  inherits: false;
+  initial-value: 45%;
 }
 
 .hero-mesh {
   background:
+    /* deep indigo wash — wide, high, slow */
     radial-gradient(
-      ellipse 55% 45% at var(--mesh-x1) var(--mesh-y1),
-      rgba(124, 58, 237, 0.14),
+      ellipse 80% 28% at var(--mesh-x1) var(--mesh-y1),
+      rgba(49, 27, 112, 0.18),
       transparent 70%
     ),
+    /* cool violet wisp — narrower, mid-height */
     radial-gradient(
-      ellipse 45% 50% at var(--mesh-x2) var(--mesh-y2),
-      rgba(236, 72, 153, 0.08),
+      ellipse 65% 22% at var(--mesh-x2) var(--mesh-y2),
+      rgba(91, 52, 168, 0.12),
       transparent 65%
     ),
+    /* slate-blue haze — low, very wide, subtle */
     radial-gradient(
-      ellipse 50% 40% at var(--mesh-x3) var(--mesh-y3),
-      rgba(167, 139, 250, 0.10),
+      ellipse 90% 25% at var(--mesh-x3) var(--mesh-y3),
+      rgba(30, 40, 82, 0.15),
       transparent 60%
+    ),
+    /* faint plum tint — mid-layer fill */
+    radial-gradient(
+      ellipse 70% 30% at var(--mesh-x4) var(--mesh-y4),
+      rgba(78, 42, 132, 0.08),
+      transparent 65%
     );
   animation:
-    mesh-drift-1 18s ease-in-out infinite,
-    mesh-drift-2 23s ease-in-out infinite,
-    mesh-drift-3 29s ease-in-out infinite;
+    mesh-drift-1 35s ease-in-out infinite,
+    mesh-drift-2 28s ease-in-out infinite,
+    mesh-drift-3 42s ease-in-out infinite,
+    mesh-drift-4 33s ease-in-out infinite;
   pointer-events: none;
 }
 
+/* Mostly horizontal drift — clouds don't bounce vertically */
 @keyframes mesh-drift-1 {
-  0%, 100% { --mesh-x1: 20%; --mesh-y1: 30%; }
-  33%      { --mesh-x1: 35%; --mesh-y1: 55%; }
-  66%      { --mesh-x1: 15%; --mesh-y1: 45%; }
+  0%, 100% { --mesh-x1: 15%; --mesh-y1: 28%; }
+  40%      { --mesh-x1: 35%; --mesh-y1: 32%; }
+  70%      { --mesh-x1: 25%; --mesh-y1: 25%; }
 }
 
 @keyframes mesh-drift-2 {
-  0%, 100% { --mesh-x2: 75%; --mesh-y2: 20%; }
-  50%      { --mesh-x2: 60%; --mesh-y2: 50%; }
+  0%, 100% { --mesh-x2: 80%; --mesh-y2: 22%; }
+  35%      { --mesh-x2: 65%; --mesh-y2: 28%; }
+  65%      { --mesh-x2: 75%; --mesh-y2: 18%; }
 }
 
 @keyframes mesh-drift-3 {
-  0%, 100% { --mesh-x3: 50%; --mesh-y3: 75%; }
-  40%      { --mesh-x3: 70%; --mesh-y3: 60%; }
-  75%      { --mesh-x3: 35%; --mesh-y3: 80%; }
+  0%, 100% { --mesh-x3: 45%; --mesh-y3: 70%; }
+  50%      { --mesh-x3: 60%; --mesh-y3: 65%; }
+}
+
+@keyframes mesh-drift-4 {
+  0%, 100% { --mesh-x4: 65%; --mesh-y4: 45%; }
+  30%      { --mesh-x4: 50%; --mesh-y4: 48%; }
+  70%      { --mesh-x4: 72%; --mesh-y4: 42%; }
 }
 
 /* Reduced motion */

@@ -244,7 +244,8 @@ function Hero() {
 
       {/* Subtitle */}
       <p className="relative mt-7 text-lg md:text-xl text-muted text-center max-w-2xl leading-relaxed animate-fade-up-2">
-        Your Claude artifacts deserve more than a chat window.{' '}
+        Your Claude artifacts deserve more than a chat window.
+        <br />
         <span className="text-accent">Preview them instantly on your Mac.</span>
       </p>
 
