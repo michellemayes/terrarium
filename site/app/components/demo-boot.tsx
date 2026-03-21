@@ -1,13 +1,15 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { DemoCounter } from './demo-counter'
 
 export function DemoBoot({ ready }: { ready: boolean }) {
   const [phase, setPhase] = useState<'waiting' | 'booting' | 'live'>('waiting')
+  const hasBooted = useRef(false)
 
   useEffect(() => {
-    if (!ready || phase !== 'waiting') return
+    if (!ready || hasBooted.current) return
+    hasBooted.current = true
 
     // Skip boot animation if reduced motion
     if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
@@ -18,7 +20,7 @@ export function DemoBoot({ ready }: { ready: boolean }) {
     setPhase('booting')
     const timer = setTimeout(() => setPhase('live'), 900)
     return () => clearTimeout(timer)
-  }, [ready, phase])
+  }, [ready])
 
   if (phase === 'waiting') {
     return (
