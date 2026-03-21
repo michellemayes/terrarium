@@ -15,7 +15,7 @@ export function CopyableCommand({ command }: { command: string }) {
   return (
     <button
       onClick={copy}
-      className="group flex items-center justify-between w-full text-left whitespace-nowrap hover:text-violet-200 transition-colors"
+      className="group flex items-center justify-between w-full text-left whitespace-nowrap text-violet-300 hover:text-violet-200 transition-colors"
       title="Copy to clipboard"
     >
       <span>
