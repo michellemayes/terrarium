@@ -217,6 +217,79 @@
   contain-intrinsic-size: auto 800px;
 }
 
+/* ─── Animated gradient mesh (@property for animatable gradients) ─── */
+@property --mesh-x1 {
+  syntax: '<percentage>';
+  inherits: false;
+  initial-value: 20%;
+}
+@property --mesh-y1 {
+  syntax: '<percentage>';
+  inherits: false;
+  initial-value: 30%;
+}
+@property --mesh-x2 {
+  syntax: '<percentage>';
+  inherits: false;
+  initial-value: 75%;
+}
+@property --mesh-y2 {
+  syntax: '<percentage>';
+  inherits: false;
+  initial-value: 20%;
+}
+@property --mesh-x3 {
+  syntax: '<percentage>';
+  inherits: false;
+  initial-value: 50%;
+}
+@property --mesh-y3 {
+  syntax: '<percentage>';
+  inherits: false;
+  initial-value: 75%;
+}
+
+.hero-mesh {
+  background:
+    radial-gradient(
+      ellipse 55% 45% at var(--mesh-x1) var(--mesh-y1),
+      rgba(124, 58, 237, 0.14),
+      transparent 70%
+    ),
+    radial-gradient(
+      ellipse 45% 50% at var(--mesh-x2) var(--mesh-y2),
+      rgba(236, 72, 153, 0.08),
+      transparent 65%
+    ),
+    radial-gradient(
+      ellipse 50% 40% at var(--mesh-x3) var(--mesh-y3),
+      rgba(167, 139, 250, 0.10),
+      transparent 60%
+    );
+  animation:
+    mesh-drift-1 18s ease-in-out infinite,
+    mesh-drift-2 23s ease-in-out infinite,
+    mesh-drift-3 29s ease-in-out infinite;
+  pointer-events: none;
+}
+
+@keyframes mesh-drift-1 {
+  0%, 100% { --mesh-x1: 20%; --mesh-y1: 30%; }
+  33%      { --mesh-x1: 35%; --mesh-y1: 55%; }
+  66%      { --mesh-x1: 15%; --mesh-y1: 45%; }
+}
+
+@keyframes mesh-drift-2 {
+  0%, 100% { --mesh-x2: 75%; --mesh-y2: 20%; }
+  50%      { --mesh-x2: 60%; --mesh-y2: 50%; }
+}
+
+@keyframes mesh-drift-3 {
+  0%, 100% { --mesh-x3: 50%; --mesh-y3: 75%; }
+  40%      { --mesh-x3: 70%; --mesh-y3: 60%; }
+  75%      { --mesh-x3: 35%; --mesh-y3: 80%; }
+}
+
 /* Reduced motion */
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after {

@@ -219,16 +219,7 @@ function Hero() {
     <section className="relative min-h-screen flex flex-col items-center justify-center px-6 pt-24 pb-20 overflow-hidden">
       {/* Background gradients — interactive glow layer + static fallback */}
       <div className="hero-glow absolute inset-0" />
-      <div
-        className="hero-glow-fallback absolute inset-0"
-        style={{
-          background: [
-            'radial-gradient(ellipse 50% 40% at 25% 70%, rgba(var(--color-accent-pink-rgb), 0.06), transparent)',
-            'radial-gradient(ellipse 40% 35% at 80% 25%, rgba(var(--color-brand-rgb), 0.07), transparent)',
-            'var(--color-base)',
-          ].join(', '),
-        }}
-      />
+      <div className="hero-mesh absolute inset-0" />
 
       {/* Sparkles — show 3 on mobile, all 5 on md+ */}
       <Sparkle className="absolute top-[18%] left-[12%] text-pink-400/50 animate-sparkle" size={14} />
