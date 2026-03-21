@@ -10,8 +10,27 @@ const config: Config = {
         mono: ['var(--font-mono)', 'monospace'],
       },
       colors: {
+        base: 'var(--color-base)',
+        deep: 'var(--color-deep)',
         surface: '#0f0a1a',
         elevated: '#1a1228',
+        brand: {
+          DEFAULT: 'var(--color-brand)',
+          light: 'var(--color-brand-light)',
+          dark: 'var(--color-brand-dark)',
+          soft: 'var(--color-brand-soft)',
+        },
+        accent: {
+          amber: 'var(--color-accent-amber)',
+          pink: 'var(--color-accent-pink)',
+        },
+      },
+      textColor: {
+        bright: 'var(--color-text-bright)',
+        accent: 'var(--color-text-accent)',
+        muted: 'var(--color-text-muted)',
+        dim: 'var(--color-text-dim)',
+        subtle: 'var(--color-text-subtle)',
       },
       animation: {
         'float': 'float 6s ease-in-out infinite',
@@ -24,6 +43,10 @@ const config: Config = {
         'fade-up-3': 'fade-up 0.8s ease-out 0.35s both',
         'fade-up-4': 'fade-up 0.8s ease-out 0.5s both',
         'glow-pulse': 'glow-pulse 4s ease-in-out infinite',
+        'scroll-hint': 'scroll-hint 2s ease-in-out infinite',
+        'fade-in': 'fade-in 0.3s ease-out both',
+        'blink': 'blink 1s steps(2) infinite',
+        'boot-progress': 'boot-progress 0.8s cubic-bezier(0.25, 1, 0.5, 1) both',
       },
       keyframes: {
         float: {
@@ -41,6 +64,22 @@ const config: Config = {
         'glow-pulse': {
           '0%, 100%': { opacity: '0.4' },
           '50%': { opacity: '0.8' },
+        },
+        'scroll-hint': {
+          '0%, 100%': { transform: 'translateY(0)', opacity: '0.5' },
+          '50%': { transform: 'translateY(4px)', opacity: '1' },
+        },
+        'fade-in': {
+          '0%': { opacity: '0' },
+          '100%': { opacity: '1' },
+        },
+        'blink': {
+          '0%, 100%': { opacity: '1' },
+          '50%': { opacity: '0' },
+        },
+        'boot-progress': {
+          '0%': { width: '0%' },
+          '100%': { width: '100%' },
         },
       },
     },

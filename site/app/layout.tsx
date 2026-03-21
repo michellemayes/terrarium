@@ -17,6 +17,7 @@ const outfit = Outfit({
 })
 
 const firaCode = Fira_Code({
+  weight: ['400'],
   subsets: ['latin'],
   variable: '--font-mono',
   display: 'swap',
