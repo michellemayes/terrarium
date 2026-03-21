@@ -467,7 +467,7 @@ function DownloadCTA() {
         <Reveal delay={200}>
           <a
             href="https://github.com/michellemayes/terrarium/releases/latest"
-            className="btn-primary text-base px-9 py-4"
+            className="btn-primary text-[16px] px-9 py-4"
           >
             <AppleIcon />
             Download for Mac
