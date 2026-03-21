@@ -281,11 +281,16 @@
     #error-banner.visible { transform: translateY(0); }
     #error-header {
       display: flex;
+      width: 100%;
       align-items: center;
       justify-content: space-between;
       padding: 8px 16px;
       cursor: pointer;
       user-select: none;
+      background: none;
+      border: none;
+      color: inherit;
+      font: inherit;
     }
     #error-title {
       font-weight: 600;
@@ -299,17 +304,8 @@
       font-size: 14px;
     }
     #error-toggle {
-      background: none;
-      border: none;
       color: var(--text-icon);
-      cursor: pointer;
       font-size: 16px;
-      padding: 4px 8px;
-      min-width: 32px;
-      min-height: 32px;
-      display: inline-flex;
-      align-items: center;
-      justify-content: center;
     }
     #error-detail {
       padding: 0 16px 12px;
@@ -545,10 +541,10 @@
   </style>
 </head>
 <body>
-  <div id="root">
-    <main id="welcome">
+  <main id="root">
+    <div id="welcome" role="region" aria-label="Welcome">
       <canvas id="terrarium-canvas" aria-hidden="true"></canvas>
-      <svg viewBox="0 0 512 512" xmlns="http://www.w3.org/2000/svg">
+      <svg viewBox="0 0 512 512" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
         <defs>
           <linearGradient id="wPanelTL" x1="0" y1="1" x2="0.8" y2="0">
             <stop offset="0%" stop-color="#ddd6fe" stop-opacity="0.65"/>
@@ -619,8 +615,8 @@
         </svg>
         <span class="empty-hint">Your garden awaits</span>
       </div>
-    </main>
-  </div>
+    </div>
+  </main>
   <div id="progress-bar" role="progressbar" aria-label="Loading component" aria-busy="false"><div id="progress-bar-fill"></div></div>
   <div id="progress-status" role="status" aria-live="polite"></div>
   <div id="node-banner" role="alert">
@@ -638,10 +634,10 @@
     <button id="first-run-dismiss">Got it</button>
   </div>
   <div id="error-banner" role="alert">
-    <div id="error-header">
+    <button id="error-header" type="button" aria-expanded="true" aria-controls="error-detail">
       <span id="error-title">Build Error</span>
-      <button id="error-toggle" aria-label="Toggle error details" aria-expanded="true">&#9660;</button>
-    </div>
+      <span id="error-toggle" aria-hidden="true">&#9660;</span>
+    </button>
     <pre id="error-detail"></pre>
   </div>
   <div id="update-toast" role="status" aria-live="polite">

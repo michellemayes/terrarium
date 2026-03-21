@@ -3,61 +3,98 @@
 @tailwind utilities;
 
 @layer base {
+  :root {
+    /* Backgrounds */
+    --color-base: #07040d;
+    --color-deep: #0c0816;
+
+    /* Text */
+    --color-text-primary: #ede9f6;
+    --color-text-bright: #e9d5ff;
+    --color-text-accent: #c4b5fd;
+    --color-text-muted: #8b7aab;
+    --color-text-dim: #6b5a8a;
+    --color-text-subtle: #9b8fc4;
+
+    /* Brand */
+    --color-brand: #7c3aed;
+    --color-brand-light: #8b5cf6;
+    --color-brand-dark: #6d28d9;
+    --color-brand-soft: #a78bfa;
+    --color-brand-rgb: 124, 58, 237;
+
+    /* Accents */
+    --color-accent-amber: #fbbf24;
+    --color-accent-pink: #f472b6;
+    --color-accent-pink-rgb: 236, 72, 153;
+
+    /* Tinted white (never pure #fff) */
+    --color-white: #f5f0ff;
+  }
+
   html {
     scroll-behavior: smooth;
   }
 
   body {
-    background: #07040d;
-    color: #ede9f6;
+    background: var(--color-base);
+    color: var(--color-text-primary);
   }
 
   ::selection {
-    background: rgba(139, 92, 246, 0.4);
-    color: #fff;
+    background: rgba(var(--color-brand-rgb), 0.4);
+    color: var(--color-white);
   }
 }
 
 @layer components {
   .glass {
-    background: rgba(139, 92, 246, 0.06);
-    border: 1px solid rgba(139, 92, 246, 0.12);
+    background: rgba(var(--color-brand-rgb), 0.06);
+    border: 1px solid rgba(var(--color-brand-rgb), 0.12);
     backdrop-filter: blur(16px);
     -webkit-backdrop-filter: blur(16px);
+    contain: layout style;
   }
 
   .glass-hover {
-    transition: all 0.3s ease;
+    transition: background 0.3s ease, border-color 0.3s ease, box-shadow 0.3s ease;
   }
 
   .glass-hover:hover {
-    background: rgba(139, 92, 246, 0.12);
-    border-color: rgba(139, 92, 246, 0.28);
-    box-shadow: 0 0 32px rgba(139, 92, 246, 0.08);
+    background: rgba(var(--color-brand-rgb), 0.12);
+    border-color: rgba(var(--color-brand-rgb), 0.28);
+    box-shadow: 0 0 32px rgba(var(--color-brand-rgb), 0.08);
+  }
+
+  .glass-hover:hover .feature-icon {
+    transform: scale(1.08);
+    background: rgba(139, 92, 246, 0.18);
   }
 
   .gradient-text {
-    background: linear-gradient(135deg, #c4b5fd 0%, #f472b6 50%, #fbbf24 100%);
+    background: linear-gradient(135deg, var(--color-text-accent) 0%, var(--color-accent-pink) 50%, var(--color-accent-amber) 100%);
     -webkit-background-clip: text;
     -webkit-text-fill-color: transparent;
     background-clip: text;
   }
 
   .gradient-text-subtle {
-    background: linear-gradient(135deg, #e9d5ff 0%, #c4b5fd 100%);
+    background: linear-gradient(135deg, var(--color-text-bright) 0%, var(--color-text-accent) 100%);
     -webkit-background-clip: text;
     -webkit-text-fill-color: transparent;
     background-clip: text;
   }
 
   .btn-primary {
-    @apply inline-flex items-center justify-center gap-2.5 px-7 py-3.5 rounded-xl font-medium text-white transition-all duration-300;
-    background: linear-gradient(135deg, #7c3aed, #8b5cf6);
-    box-shadow: 0 0 24px rgba(124, 58, 237, 0.3), inset 0 1px 0 rgba(255, 255, 255, 0.1);
+    @apply inline-flex items-center justify-center gap-2.5 px-7 py-3.5 rounded-xl font-medium;
+    color: var(--color-white);
+    background: linear-gradient(135deg, var(--color-brand), var(--color-brand-light));
+    box-shadow: 0 0 24px rgba(var(--color-brand-rgb), 0.3), inset 0 1px 0 rgba(255, 255, 255, 0.1);
+    transition: transform 0.2s ease, box-shadow 0.3s ease;
   }
 
   .btn-primary:hover {
-    box-shadow: 0 0 36px rgba(124, 58, 237, 0.5), inset 0 1px 0 rgba(255, 255, 255, 0.15);
+    box-shadow: 0 0 36px rgba(var(--color-brand-rgb), 0.5), inset 0 1px 0 rgba(255, 255, 255, 0.15);
     transform: translateY(-1px);
   }
 
@@ -65,34 +102,42 @@
     transform: translateY(0);
   }
 
+  .btn-primary-sm {
+    @apply px-5 py-2.5 text-sm;
+  }
+
   .btn-ghost {
-    @apply inline-flex items-center justify-center gap-2.5 px-7 py-3.5 rounded-xl font-medium transition-all duration-300;
-    color: #c4b5fd;
-    background: rgba(139, 92, 246, 0.08);
-    border: 1px solid rgba(139, 92, 246, 0.2);
+    @apply inline-flex items-center justify-center gap-2.5 px-7 py-3.5 rounded-xl font-medium;
+    color: var(--color-text-accent);
+    background: rgba(var(--color-brand-rgb), 0.08);
+    border: 1px solid rgba(var(--color-brand-rgb), 0.2);
+    transition: background 0.3s ease, border-color 0.3s ease, color 0.3s ease;
   }
 
   .btn-ghost:hover {
-    background: rgba(139, 92, 246, 0.14);
-    border-color: rgba(139, 92, 246, 0.4);
-    color: #e9d5ff;
+    background: rgba(var(--color-brand-rgb), 0.14);
+    border-color: rgba(var(--color-brand-rgb), 0.4);
+    color: var(--color-text-bright);
   }
 
   .gradient-border {
     position: relative;
-    background: linear-gradient(135deg, rgba(139, 92, 246, 0.3), rgba(236, 72, 153, 0.15), rgba(139, 92, 246, 0.1));
+    background: linear-gradient(135deg, rgba(var(--color-brand-rgb), 0.3), rgba(var(--color-accent-pink-rgb), 0.15), rgba(var(--color-brand-rgb), 0.1));
     padding: 1px;
     border-radius: 1rem;
+    contain: layout style;
+  }
+
+  .gradient-border-shimmer {
+    background-size: 300% 300%;
+    animation: border-shimmer 8s ease-in-out infinite;
   }
 
   .gradient-border-inner {
-    background: #0c0816;
+    background: var(--color-deep);
     border-radius: calc(1rem - 1px);
   }
 
-  .code-window {
-    background: linear-gradient(180deg, #100b1e 0%, #0c0816 100%);
-  }
 }
 
 /* Scrollbar */
@@ -105,16 +150,179 @@
 }
 
 ::-webkit-scrollbar-thumb {
-  background: rgba(139, 92, 246, 0.25);
+  background: rgba(var(--color-brand-rgb), 0.25);
   border-radius: 3px;
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  background: rgba(139, 92, 246, 0.4);
+  background: rgba(var(--color-brand-rgb), 0.4);
 }
 
 /* Section divider */
 .section-divider {
   height: 1px;
-  background: linear-gradient(90deg, transparent, rgba(139, 92, 246, 0.15), transparent);
+  background: linear-gradient(90deg, transparent, rgba(var(--color-brand-rgb), 0.15), transparent);
+}
+
+/* Focus indicators */
+:focus-visible {
+  outline: 2px solid var(--color-accent-amber);
+  outline-offset: 2px;
+}
+
+/* Skip link */
+.skip-link {
+  position: absolute;
+  top: -100%;
+  left: 16px;
+  z-index: 100;
+  padding: 8px 16px;
+  background: var(--color-accent-amber);
+  color: var(--color-base);
+  font-weight: 600;
+  font-size: 14px;
+  border-radius: 0 0 8px 8px;
+  text-decoration: none;
+}
+
+.skip-link:focus {
+  top: 0;
+}
+
+/* Gradient border shimmer */
+@keyframes border-shimmer {
+  0%, 100% { background-position: 0% 50%; }
+  50% { background-position: 100% 50%; }
+}
+
+/* Hero cursor-reactive glow */
+.hero-glow-container {
+  --glow-x: 50%;
+  --glow-y: 35%;
+}
+
+.hero-glow {
+  background: radial-gradient(
+    ellipse 60% 50% at var(--glow-x) var(--glow-y),
+    rgba(var(--color-brand-rgb), 0.18),
+    transparent 70%
+  );
+  transition: none; /* driven by rAF lerp, not CSS transitions */
+  pointer-events: none;
+}
+
+/* Below-fold sections: defer rendering until near viewport */
+.section-lazy {
+  content-visibility: auto;
+  contain-intrinsic-size: auto 800px;
+}
+
+/* ─── Animated gradient mesh — nighttime cloud layers ─── */
+@property --mesh-x1 {
+  syntax: '<percentage>';
+  inherits: false;
+  initial-value: 15%;
+}
+@property --mesh-y1 {
+  syntax: '<percentage>';
+  inherits: false;
+  initial-value: 28%;
+}
+@property --mesh-x2 {
+  syntax: '<percentage>';
+  inherits: false;
+  initial-value: 80%;
+}
+@property --mesh-y2 {
+  syntax: '<percentage>';
+  inherits: false;
+  initial-value: 22%;
+}
+@property --mesh-x3 {
+  syntax: '<percentage>';
+  inherits: false;
+  initial-value: 45%;
+}
+@property --mesh-y3 {
+  syntax: '<percentage>';
+  inherits: false;
+  initial-value: 70%;
+}
+@property --mesh-x4 {
+  syntax: '<percentage>';
+  inherits: false;
+  initial-value: 65%;
+}
+@property --mesh-y4 {
+  syntax: '<percentage>';
+  inherits: false;
+  initial-value: 45%;
+}
+
+.hero-mesh {
+  background:
+    /* deep indigo wash — wide, high, slow */
+    radial-gradient(
+      ellipse 80% 28% at var(--mesh-x1) var(--mesh-y1),
+      rgba(49, 27, 112, 0.18),
+      transparent 70%
+    ),
+    /* cool violet wisp — narrower, mid-height */
+    radial-gradient(
+      ellipse 65% 22% at var(--mesh-x2) var(--mesh-y2),
+      rgba(91, 52, 168, 0.12),
+      transparent 65%
+    ),
+    /* slate-blue haze — low, very wide, subtle */
+    radial-gradient(
+      ellipse 90% 25% at var(--mesh-x3) var(--mesh-y3),
+      rgba(30, 40, 82, 0.15),
+      transparent 60%
+    ),
+    /* faint plum tint — mid-layer fill */
+    radial-gradient(
+      ellipse 70% 30% at var(--mesh-x4) var(--mesh-y4),
+      rgba(78, 42, 132, 0.08),
+      transparent 65%
+    );
+  animation:
+    mesh-drift-1 35s ease-in-out infinite,
+    mesh-drift-2 28s ease-in-out infinite,
+    mesh-drift-3 42s ease-in-out infinite,
+    mesh-drift-4 33s ease-in-out infinite;
+  pointer-events: none;
+}
+
+/* Mostly horizontal drift — clouds don't bounce vertically */
+@keyframes mesh-drift-1 {
+  0%, 100% { --mesh-x1: 15%; --mesh-y1: 28%; }
+  40%      { --mesh-x1: 35%; --mesh-y1: 32%; }
+  70%      { --mesh-x1: 25%; --mesh-y1: 25%; }
+}
+
+@keyframes mesh-drift-2 {
+  0%, 100% { --mesh-x2: 80%; --mesh-y2: 22%; }
+  35%      { --mesh-x2: 65%; --mesh-y2: 28%; }
+  65%      { --mesh-x2: 75%; --mesh-y2: 18%; }
+}
+
+@keyframes mesh-drift-3 {
+  0%, 100% { --mesh-x3: 45%; --mesh-y3: 70%; }
+  50%      { --mesh-x3: 60%; --mesh-y3: 65%; }
+}
+
+@keyframes mesh-drift-4 {
+  0%, 100% { --mesh-x4: 65%; --mesh-y4: 45%; }
+  30%      { --mesh-x4: 50%; --mesh-y4: 48%; }
+  70%      { --mesh-x4: 72%; --mesh-y4: 42%; }
+}
+
+/* Reduced motion */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
 }

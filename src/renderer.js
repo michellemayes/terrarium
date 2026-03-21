@@ -105,18 +105,17 @@ function hideError() {
   root.style.opacity = '1';
 }
 
+const errorHeader = document.getElementById('error-header');
+
 function toggleError() {
   detailExpanded = !detailExpanded;
   errorDetail.style.display = detailExpanded ? 'block' : 'none';
   errorToggle.textContent = detailExpanded ? '\u25BC' : '\u25B6';
-  errorToggle.setAttribute('aria-expanded', String(detailExpanded));
+  if (errorHeader) errorHeader.setAttribute('aria-expanded', String(detailExpanded));
 }
 
-const errorHeader = document.getElementById('error-header');
 if (errorHeader) {
   errorHeader.addEventListener('click', toggleError);
-  errorHeader.style.cursor = 'pointer';
-  errorHeader.style.userSelect = 'none';
 }
 
 async function renderBundle(bundledCode) {
