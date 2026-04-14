@@ -62,8 +62,9 @@ if (firstRunDismiss && firstRunHint) {
   });
 }
 
+const errorTitle = document.getElementById('error-title');
+
 function showError(message) {
-  const errorTitle = document.getElementById('error-title');
   let title = 'Build Error';
   let detail = message;
 
@@ -104,13 +105,18 @@ function hideError() {
   root.style.opacity = '1';
 }
 
-window.toggleError = function() {
+const errorHeader = document.getElementById('error-header');
+
+function toggleError() {
   detailExpanded = !detailExpanded;
   errorDetail.style.display = detailExpanded ? 'block' : 'none';
   errorToggle.textContent = detailExpanded ? '\u25BC' : '\u25B6';
-  const errorHeader = document.getElementById('error-header');
   if (errorHeader) errorHeader.setAttribute('aria-expanded', String(detailExpanded));
-};
+}
+
+if (errorHeader) {
+  errorHeader.addEventListener('click', toggleError);
+}
 
 async function renderBundle(bundledCode) {
   try {
@@ -161,6 +167,7 @@ listen('bundle-error', (event) => {
 
 listen('bundle-started', () => {
   progressBar.classList.add('visible');
+  progressBar.setAttribute('aria-busy', 'true');
   progressStatus.textContent = 'Loading...';
   progressStatus.classList.add('visible');
 });
@@ -171,6 +178,7 @@ listen('bundle-progress', (event) => {
 
 listen('bundle-finished', () => {
   progressBar.classList.remove('visible');
+  progressBar.setAttribute('aria-busy', 'false');
   progressStatus.classList.remove('visible');
 });
 
@@ -241,12 +249,17 @@ function renderPlantShelf(recentFiles) {
 
   plantEmpty.style.display = 'none';
   plantShelf.style.display = 'block';
-  shelfPlants.innerHTML = '';
+  shelfPlants.replaceChildren();
 
-  for (const file of recentFiles) {
-    const item = document.createElement('div');
+  recentFiles.forEach((file, index) => {
+    const item = document.createElement('button');
     item.className = 'plant-item';
     item.title = file.path;
+    item.style.animationDelay = (index * 0.06) + 's';
+
+    const filename = file.path.split('/').pop() || file.path;
+    const displayName = filename.replace(/\.(tsx|jsx)$/, '');
+    item.setAttribute('aria-label', 'Open ' + displayName);
 
     const svg = getPlantSvg(file.plant);
     if (svg) {
@@ -255,8 +268,8 @@ function renderPlantShelf(recentFiles) {
 
     const name = document.createElement('span');
     name.className = 'plant-name';
-    const filename = file.path.split('/').pop() || file.path;
-    name.textContent = filename.replace(/\.(tsx|jsx)$/, '');
+    name.textContent = displayName;
+    name.setAttribute('aria-hidden', 'true');
     item.appendChild(name);
 
     item.addEventListener('click', () => {
@@ -264,7 +277,7 @@ function renderPlantShelf(recentFiles) {
     });
 
     shelfPlants.appendChild(item);
-  }
+  });
 }
 
 function loadPlantShelf() {
@@ -282,7 +295,7 @@ const updateMessage = document.getElementById('update-toast-message');
 const updateActions = document.getElementById('update-toast-actions');
 
 function clearChildren(el) {
-  while (el.firstChild) el.removeChild(el.firstChild);
+  el.replaceChildren();
 }
 
 function createBtn(text, className, onClick) {
@@ -356,3 +369,83 @@ listen('update-downloaded', () => {
 listen('update-error', (event) => {
   showUpdateError(event.payload);
 });
+
+// --- Ambient particles ---
+
+(function initParticles() {
+  const canvas = document.getElementById('terrarium-canvas');
+  if (!canvas) return;
+  if (typeof window.matchMedia === 'function' &&
+      window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+
+  let ctx;
+  try { ctx = canvas.getContext('2d'); } catch { return; }
+  if (!ctx) return;
+  const particles = [];
+  const colors = [
+    'rgba(167,139,250,', // accent
+    'rgba(196,181,253,', // lavender
+    'rgba(255,138,208,', // pink
+    'rgba(221,214,254,', // pale violet
+  ];
+  let t = 0;
+
+  function resize() {
+    const dpr = window.devicePixelRatio || 1;
+    canvas.width = canvas.offsetWidth * dpr;
+    canvas.height = canvas.offsetHeight * dpr;
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+  }
+
+  function seed() {
+    const w = canvas.offsetWidth;
+    const h = canvas.offsetHeight;
+    particles.length = 0;
+    for (let i = 0; i < 30; i++) {
+      particles.push({
+        x: Math.random() * w,
+        y: Math.random() * h,
+        r: 0.5 + Math.random() * 1.5,
+        speed: 0.1 + Math.random() * 0.2,
+        wobble: 0.3 + Math.random() * 0.5,
+        amp: 12 + Math.random() * 18,
+        phase: Math.random() * Math.PI * 2,
+        color: colors[Math.floor(Math.random() * colors.length)],
+        alpha: 0.12 + Math.random() * 0.3,
+      });
+    }
+  }
+
+  function frame() {
+    if (!canvas.isConnected) return;
+    const w = canvas.offsetWidth;
+    const h = canvas.offsetHeight;
+    ctx.clearRect(0, 0, w, h);
+    t += 0.006;
+
+    for (const p of particles) {
+      p.y -= p.speed;
+      if (p.y < -10) { p.y = h + 10; p.x = Math.random() * w; }
+      const dx = Math.sin(t * p.wobble + p.phase) * p.amp;
+      const a = p.alpha * (0.5 + 0.5 * Math.sin(t * 1.2 + p.phase));
+
+      ctx.beginPath();
+      ctx.arc(p.x + dx, p.y, p.r, 0, Math.PI * 2);
+      ctx.fillStyle = p.color + a + ')';
+      ctx.fill();
+
+      if (p.r > 1) {
+        ctx.beginPath();
+        ctx.arc(p.x + dx, p.y, p.r * 3, 0, Math.PI * 2);
+        ctx.fillStyle = p.color + (a * 0.1) + ')';
+        ctx.fill();
+      }
+    }
+    requestAnimationFrame(frame);
+  }
+
+  resize();
+  seed();
+  requestAnimationFrame(frame);
+  window.addEventListener('resize', () => { resize(); seed(); });
+})();
