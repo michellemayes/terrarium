@@ -5,6 +5,8 @@ node_modules/
 dist/
 src-tauri/target/
 site/.next/
+site/CHANGELOG.md
+site/tsconfig.tsbuildinfo
 
 # IDE
 .vscode/
