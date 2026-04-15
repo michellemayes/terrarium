@@ -163,7 +163,7 @@ export default function ChangelogPage() {
   const { intro, versions } = loadChangelog()
 
   return (
-    <article>
+    <article className="mx-auto max-w-4xl px-6 pt-28 pb-24">
       <header className="mb-12 pb-8 border-b border-violet-500/10">
         <p className="text-xs uppercase tracking-widest text-dim font-medium mb-4">
           Reference
