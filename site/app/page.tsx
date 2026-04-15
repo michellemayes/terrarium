@@ -198,6 +198,12 @@ function Nav() {
         </div>
         <div className="flex items-center gap-6">
           <a
+            href="/compare"
+            className="text-sm text-muted hover:text-accent transition-colors hidden sm:block"
+          >
+            Compare
+          </a>
+          <a
             href="https://github.com/michellemayes/terrarium"
             className="text-sm text-muted hover:text-accent transition-colors hidden sm:block"
           >
@@ -480,6 +486,9 @@ function Footer() {
         </div>
 
         <div className="flex items-center gap-2 text-sm text-dim">
+          <a href="/compare" className="hover:text-accent transition-colors py-2 px-3">
+            Compare
+          </a>
           <a href="https://github.com/michellemayes/terrarium" className="hover:text-accent transition-colors py-2 px-3">
             GitHub
           </a>
