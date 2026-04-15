@@ -2,6 +2,17 @@
 
 All notable changes to Terrarium are documented in this file.
 
+## [1.0.0] - 2026-04-15
+
+### Bug Fixes
+
+- Clean node_modules before bundler dep install in CI (#31) by @michellemayes in [#31](https://github.com/michellemayes/terrarium/pull/31)
+
+### Features
+
+- Redesign landing page with layout, perf, and interactivity (#29) by @michellemayes in [#29](https://github.com/michellemayes/terrarium/pull/29)
+- Harden, normalize, and polish Tauri app frontend (#30) by @michellemayes in [#30](https://github.com/michellemayes/terrarium/pull/30)
+
 ## [0.3.0] - 2026-03-05
 
 ### Bug Fixes
