@@ -48,7 +48,7 @@ jobs:
         run: cd src-tauri/resources && pnpm install
 
       - name: Pre-install bundler dependencies
-        run: npm install --prefix ~/.terrarium react react-dom esbuild
+        run: rm -rf ~/.terrarium/node_modules && npm install --prefix ~/.terrarium react react-dom esbuild
 
       - name: Run tests before publish
         run: pnpm test && cd src-tauri && cargo test
