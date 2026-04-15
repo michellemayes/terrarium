@@ -1,0 +1,30 @@
+# https://terrarium-viewer.com/robots.txt
+User-agent: *
+Allow: /
+
+Sitemap: https://terrarium-viewer.com/sitemap.xml
+
+# AI crawlers — explicit allow for search/answer engines
+User-agent: GPTBot
+Allow: /
+
+User-agent: OAI-SearchBot
+Allow: /
+
+User-agent: ChatGPT-User
+Allow: /
+
+User-agent: ClaudeBot
+Allow: /
+
+User-agent: Claude-Web
+Allow: /
+
+User-agent: PerplexityBot
+Allow: /
+
+User-agent: Google-Extended
+Allow: /
+
+User-agent: Applebot-Extended
+Allow: /

@@ -4,8 +4,10 @@
   "private": true,
   "scripts": {
     "dev": "next dev",
+    "prebuild": "node ./scripts/sync-changelog.mjs",
     "build": "next build",
-    "start": "next start"
+    "start": "next start",
+    "indexnow": "node ./scripts/ping-indexnow.mjs"
   },
   "dependencies": {
     "@vercel/analytics": "^1.6.1",

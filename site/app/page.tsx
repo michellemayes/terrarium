@@ -1,3 +1,4 @@
+import Link from 'next/link'
 import { Reveal } from './components/reveal'
 import { CopyableCommand } from './components/copyable-command'
 import { ConsoleEasterEgg } from './components/console-easter-egg'
@@ -122,6 +123,34 @@ const steps = [
   },
 ]
 
+const faqs = [
+  {
+    question: 'What is Terrarium?',
+    answer:
+      'Terrarium is a free, open-source macOS application that instantly previews React components from .tsx and .jsx files. It bundles your component with esbuild, automatically installs any npm packages the file imports, and displays the rendered result in under a second — with no package.json and no build configuration.',
+  },
+  {
+    question: 'How does Terrarium work with Claude Code?',
+    answer:
+      'Run terrarium in one terminal and Claude Code in another, both pointed at the same .tsx file. Every save from Claude Code triggers an instant re-bundle and re-render in Terrarium, so you see changes live as Claude iterates on your component.',
+  },
+  {
+    question: 'What file types does Terrarium support?',
+    answer:
+      'Terrarium supports .tsx and .jsx files. Open them via drag-and-drop onto the dock, the file picker, double-click in Finder, or the terrarium myfile.tsx CLI command.',
+  },
+  {
+    question: 'What are the system requirements?',
+    answer:
+      'Terrarium runs on macOS 12 (Monterey) or later and requires Node.js 18 or later for bundling and dependency installation.',
+  },
+  {
+    question: 'How much does Terrarium cost?',
+    answer:
+      'Terrarium is free and open source under the MIT License. The full source code is available at github.com/michellemayes/terrarium.',
+  },
+]
+
 const features = [
   {
     title: 'Zero config',
@@ -197,12 +226,24 @@ function Nav() {
           <span className="font-serif text-xl text-bright">Terrarium</span>
         </div>
         <div className="flex items-center gap-6">
-          <a
+          <Link
+            href="/docs"
+            className="text-sm text-muted hover:text-accent transition-colors hidden sm:block"
+          >
+            Docs
+          </Link>
+          <Link
+            href="/changelog"
+            className="text-sm text-muted hover:text-accent transition-colors hidden md:block"
+          >
+            Changelog
+          </Link>
+          <Link
             href="/compare"
             className="text-sm text-muted hover:text-accent transition-colors hidden sm:block"
           >
             Compare
-          </a>
+          </Link>
           <a
             href="https://github.com/michellemayes/terrarium"
             className="text-sm text-muted hover:text-accent transition-colors hidden sm:block"
@@ -270,6 +311,17 @@ function Hero() {
         </a>
       </div>
 
+      {/* Attribution byline */}
+      <p className="relative mt-7 text-sm text-dim animate-fade-up-4">
+        Free and open source · Built by{' '}
+        <a
+          href="https://michellemayes.me"
+          className="text-muted hover:text-accent transition-colors"
+        >
+          Michelle Mayes
+        </a>
+      </p>
+
       {/* Scroll hint */}
       <div className="absolute bottom-10 animate-fade-up-4">
         <div className="w-5 h-8 rounded-full border border-violet-400/20 flex items-start justify-center p-1.5">
@@ -281,6 +333,68 @@ function Hero() {
   )
 }
 
+function WhatIsTerrarium() {
+  return (
+    <section
+      id="what-is-terrarium"
+      className="relative py-28 md:py-36 px-6 section-lazy"
+      aria-labelledby="what-is-heading"
+    >
+      <div className="section-divider absolute top-0 left-0 right-0" />
+
+      <div className="mx-auto max-w-3xl">
+        <Reveal>
+          <h2
+            id="what-is-heading"
+            className="font-serif text-4xl md:text-5xl mb-10"
+          >
+            What is Terrarium?
+          </h2>
+        </Reveal>
+
+        <Reveal delay={100}>
+          <div className="space-y-6 text-[17px] md:text-lg leading-[1.75] text-muted">
+            <p>
+              Terrarium is a free, open-source macOS application that instantly
+              previews React components directly from{' '}
+              <code className="font-mono text-[15px] text-violet-300">.tsx</code>{' '}
+              and{' '}
+              <code className="font-mono text-[15px] text-violet-300">.jsx</code>{' '}
+              files. It&apos;s built for developers who generate UIs with Claude AI
+              or write components by hand, and it removes the friction of
+              spinning up a full project just to see one component render.
+            </p>
+            <p>
+              Open a file — via drag-and-drop, the{' '}
+              <code className="font-mono text-[15px] text-violet-300">terrarium</code>{' '}
+              CLI, or double-click — and Terrarium bundles it with esbuild,
+              automatically installs any npm dependencies the file imports, and
+              displays the rendered result in under a second. Every file save
+              triggers an instant re-bundle and re-render, so editing alongside
+              Claude Code or any external editor keeps the preview live.
+            </p>
+            <p>
+              Tailwind CSS v3 works out of the box, errors appear in a
+              collapsible banner with line numbers, and the last good render
+              stays visible while you debug. Terrarium is MIT-licensed and runs
+              on macOS 12 or later.
+            </p>
+            <p className="text-[15px] text-dim">
+              New here?{' '}
+              <Link
+                href="/docs/getting-started"
+                className="text-accent hover:text-violet-200 transition-colors"
+              >
+                Read the install &amp; first-run guide →
+              </Link>
+            </p>
+          </div>
+        </Reveal>
+      </div>
+    </section>
+  )
+}
+
 function HowItWorks() {
   return (
     <section className="relative py-28 md:py-36 px-6 section-lazy">
@@ -289,7 +403,7 @@ function HowItWorks() {
       <div className="mx-auto max-w-5xl">
         <Reveal>
           <h2 className="font-serif text-4xl md:text-5xl mb-20">
-            How it works
+            How does Terrarium work?
           </h2>
         </Reveal>
 
@@ -327,10 +441,10 @@ function Features() {
       <div className="mx-auto max-w-5xl">
         <Reveal>
           <h2 className="font-serif text-4xl md:text-5xl mb-3">
-            Everything you need
+            What features does Terrarium include?
           </h2>
           <p className="text-muted text-lg mb-14">
-            Nothing you don&apos;t.
+            Everything you need. Nothing you don&apos;t.
           </p>
         </Reveal>
 
@@ -428,6 +542,62 @@ function CodeDemo() {
   )
 }
 
+function FAQ() {
+  return (
+    <section
+      id="faq"
+      className="relative py-28 md:py-36 px-6 section-lazy"
+      aria-labelledby="faq-heading"
+    >
+      <div className="section-divider absolute top-0 left-0 right-0" />
+
+      <div className="mx-auto max-w-3xl">
+        <Reveal>
+          <h2
+            id="faq-heading"
+            className="font-serif text-4xl md:text-5xl mb-3"
+          >
+            Frequently asked questions
+          </h2>
+          <p className="text-muted text-lg mb-12">
+            Answers to common questions about Terrarium. For deeper detail,{' '}
+            <Link
+              href="/docs"
+              className="text-accent hover:text-violet-200 transition-colors"
+            >
+              browse the full docs
+            </Link>
+            .
+          </p>
+        </Reveal>
+
+        <div className="space-y-4">
+          {faqs.map((faq, i) => (
+            <Reveal key={i} delay={i * 80}>
+              <details className="glass glass-hover rounded-2xl p-6 group">
+                <summary className="cursor-pointer list-none flex items-start justify-between gap-4">
+                  <h3 className="font-semibold text-[17px] text-bright">
+                    {faq.question}
+                  </h3>
+                  <span
+                    className="text-violet-400 text-2xl leading-none transition-transform duration-200 group-open:rotate-45 shrink-0"
+                    aria-hidden="true"
+                  >
+                    +
+                  </span>
+                </summary>
+                <p className="mt-4 text-[15px] text-muted leading-relaxed">
+                  {faq.answer}
+                </p>
+              </details>
+            </Reveal>
+          ))}
+        </div>
+      </div>
+    </section>
+  )
+}
+
 function DownloadCTA() {
   return (
     <section id="download" className="relative py-28 md:py-36 px-6 section-lazy">
@@ -445,8 +615,25 @@ function DownloadCTA() {
           <h2 className="font-serif text-4xl sm:text-5xl md:text-6xl mb-6">
             Ready to get started?
           </h2>
-          <p className="text-muted text-lg mb-14">
+          <p className="text-muted text-lg mb-3">
             Available for macOS 12+ &middot; Requires Node.js 18+
+          </p>
+          <p className="text-sm text-dim mb-14">
+            <span className="text-accent">v1.0.0</span>
+            <span className="mx-2 opacity-40">·</span>
+            <a
+              href="https://github.com/michellemayes/terrarium/blob/master/LICENSE"
+              className="hover:text-accent transition-colors"
+            >
+              MIT License
+            </a>
+            <span className="mx-2 opacity-40">·</span>
+            <a
+              href="https://github.com/michellemayes/terrarium/blob/master/CHANGELOG.md"
+              className="hover:text-accent transition-colors"
+            >
+              Changelog
+            </a>
           </p>
         </Reveal>
 
@@ -471,6 +658,16 @@ function DownloadCTA() {
             Download for Mac
           </a>
         </Reveal>
+
+        <Reveal delay={280}>
+          <p className="mt-8 max-w-lg mx-auto text-xs text-dim leading-relaxed">
+            Open source and auditable. Terrarium executes the code inside the
+            files you open in order to render them — only open{' '}
+            <code className="font-mono text-violet-300/80">.tsx</code> and{' '}
+            <code className="font-mono text-violet-300/80">.jsx</code> files you
+            trust, just as you would any other executable.
+          </p>
+        </Reveal>
       </div>
     </section>
   )
@@ -485,10 +682,16 @@ function Footer() {
           <span className="font-serif text-lg text-subtle">Terrarium</span>
         </div>
 
-        <div className="flex items-center gap-2 text-sm text-dim">
-          <a href="/compare" className="hover:text-accent transition-colors py-2 px-3">
+        <div className="flex items-center gap-2 text-sm text-dim flex-wrap justify-center">
+          <Link href="/docs" className="hover:text-accent transition-colors py-2 px-3">
+            Docs
+          </Link>
+          <Link href="/changelog" className="hover:text-accent transition-colors py-2 px-3">
+            Changelog
+          </Link>
+          <Link href="/compare" className="hover:text-accent transition-colors py-2 px-3">
             Compare
-          </a>
+          </Link>
           <a href="https://github.com/michellemayes/terrarium" className="hover:text-accent transition-colors py-2 px-3">
             GitHub
           </a>
@@ -508,6 +711,19 @@ function Footer() {
 
 /* ─── Page ─────────────────────────────────────────────── */
 
+const faqJsonLd = {
+  '@context': 'https://schema.org',
+  '@type': 'FAQPage',
+  mainEntity: faqs.map((faq) => ({
+    '@type': 'Question',
+    name: faq.question,
+    acceptedAnswer: {
+      '@type': 'Answer',
+      text: faq.answer,
+    },
+  })),
+}
+
 export default function Page() {
   return (
     <>
@@ -515,12 +731,18 @@ export default function Page() {
       <Nav />
       <main id="main-content">
         <Hero />
+        <WhatIsTerrarium />
         <HowItWorks />
         <Features />
         <CodeDemo />
+        <FAQ />
         <DownloadCTA />
       </main>
       <Footer />
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(faqJsonLd) }}
+      />
     </>
   )
 }
