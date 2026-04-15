@@ -17,6 +17,22 @@ const routes: {
   },
   { path: '/docs/troubleshooting', priority: 0.7, changeFrequency: 'monthly' },
   { path: '/changelog', priority: 0.7, changeFrequency: 'weekly' },
+  { path: '/compare', priority: 0.8, changeFrequency: 'monthly' },
+  {
+    path: '/compare/terrarium-vs-jsx-viewer',
+    priority: 0.7,
+    changeFrequency: 'monthly',
+  },
+  {
+    path: '/compare/terrarium-vs-claude-artifact-runner',
+    priority: 0.7,
+    changeFrequency: 'monthly',
+  },
+  {
+    path: '/compare/best-react-component-previewers-ai',
+    priority: 0.7,
+    changeFrequency: 'monthly',
+  },
 ]
 
 export default function sitemap(): MetadataRoute.Sitemap {

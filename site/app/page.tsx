@@ -238,6 +238,12 @@ function Nav() {
           >
             Changelog
           </Link>
+          <Link
+            href="/compare"
+            className="text-sm text-muted hover:text-accent transition-colors hidden sm:block"
+          >
+            Compare
+          </Link>
           <a
             href="https://github.com/michellemayes/terrarium"
             className="text-sm text-muted hover:text-accent transition-colors hidden sm:block"
@@ -682,6 +688,9 @@ function Footer() {
           </Link>
           <Link href="/changelog" className="hover:text-accent transition-colors py-2 px-3">
             Changelog
+          </Link>
+          <Link href="/compare" className="hover:text-accent transition-colors py-2 px-3">
+            Compare
           </Link>
           <a href="https://github.com/michellemayes/terrarium" className="hover:text-accent transition-colors py-2 px-3">
             GitHub
