@@ -22,6 +22,9 @@ Thumbs.db
 # Internal docs
 docs/plans/
 
+# Local scratch
+screenshots/
+
 # Environment
 .env
 .env.*
