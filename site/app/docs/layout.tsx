@@ -83,7 +83,7 @@ export default function DocsLayout({
           <div className="flex items-center gap-6">
             <a
               href="https://github.com/michellemayes/terrarium"
-              className="text-sm text-muted hover:text-accent transition-colors hidden sm:block"
+              className="text-sm text-muted hover:text-accent transition-colors hidden sm:inline-flex items-center py-2.5"
             >
               GitHub
             </a>
@@ -115,7 +115,7 @@ export default function DocsLayout({
                       <li key={item.href}>
                         <Link
                           href={item.href}
-                          className="block text-[15px] text-muted hover:text-accent transition-colors py-1"
+                          className="block text-[15px] text-muted hover:text-accent transition-colors py-2"
                         >
                           {item.label}
                         </Link>
