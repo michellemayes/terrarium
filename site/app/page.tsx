@@ -228,25 +228,25 @@ function Nav() {
         <div className="flex items-center gap-6">
           <Link
             href="/docs"
-            className="text-sm text-muted hover:text-accent transition-colors hidden sm:block"
+            className="text-sm text-muted hover:text-accent transition-colors hidden sm:inline-flex items-center py-2.5"
           >
             Docs
           </Link>
           <Link
             href="/changelog"
-            className="text-sm text-muted hover:text-accent transition-colors hidden md:block"
+            className="text-sm text-muted hover:text-accent transition-colors hidden md:inline-flex items-center py-2.5"
           >
             Changelog
           </Link>
           <Link
             href="/compare"
-            className="text-sm text-muted hover:text-accent transition-colors hidden sm:block"
+            className="text-sm text-muted hover:text-accent transition-colors hidden sm:inline-flex items-center py-2.5"
           >
             Compare
           </Link>
           <a
             href="https://github.com/michellemayes/terrarium"
-            className="text-sm text-muted hover:text-accent transition-colors hidden sm:block"
+            className="text-sm text-muted hover:text-accent transition-colors hidden sm:inline-flex items-center py-2.5"
           >
             GitHub
           </a>

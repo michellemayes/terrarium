@@ -42,7 +42,12 @@
       --font-mono: 'SF Mono', 'Menlo', 'Consolas', monospace;
     }
     * { margin: 0; padding: 0; box-sizing: border-box; }
-    body { min-height: 100vh; font-family: -apple-system, system-ui, sans-serif; }
+    body {
+      min-height: 100vh;
+      font-family: -apple-system, system-ui, sans-serif;
+      -webkit-font-smoothing: antialiased;
+      -moz-osx-font-smoothing: grayscale;
+    }
     #root { min-height: 100vh; transition: opacity 0.2s; }
     :focus-visible {
       outline: 2px solid var(--accent);
@@ -86,6 +91,7 @@
       margin-bottom: 8px;
       opacity: 0;
       animation: welcome-in 0.5s ease-out 0.25s forwards;
+      text-wrap: balance;
     }
     #welcome p {
       font-size: var(--font-body);
@@ -112,7 +118,7 @@
       transform: scale(1.03);
       box-shadow: 0 6px 28px rgba(124, 58, 237, 0.45);
     }
-    #open-btn:active { transform: scale(0.98); }
+    #open-btn:active { transform: scale(0.96); }
     #drop-hint {
       margin-top: 20px;
       font-size: var(--font-caption);
@@ -210,8 +216,8 @@
       font-size: 18px;
       margin-left: 12px;
       padding: 4px 8px;
-      min-width: 32px;
-      min-height: 32px;
+      min-width: 40px;
+      min-height: 40px;
       display: inline-flex;
       align-items: center;
       justify-content: center;
@@ -265,6 +271,8 @@
       border-radius: 6px;
       cursor: pointer;
       font-size: var(--font-caption);
+      min-height: 40px;
+      min-width: 40px;
     }
     #first-run-dismiss:hover { background: rgba(255, 255, 255, 0.3); }
     #error-banner {

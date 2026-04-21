@@ -22,7 +22,7 @@ export function DemoCounter() {
     <div className="text-center">
       <button
         onClick={() => setCount(c => c + 1)}
-        className="glass glass-hover rounded-2xl px-12 py-6 inline-block mb-6 cursor-pointer active:scale-95 transition-transform"
+        className="glass glass-hover rounded-2xl px-12 py-6 inline-block mb-6 cursor-pointer active:scale-[0.96] transition-transform"
       >
         <span className="text-3xl font-semibold text-bright tabular-nums">
           Count: {count}

@@ -41,6 +41,14 @@
     color: var(--color-text-primary);
   }
 
+  h1, h2, h3 {
+    text-wrap: balance;
+  }
+
+  p {
+    text-wrap: pretty;
+  }
+
   ::selection {
     background: rgba(var(--color-brand-rgb), 0.4);
     color: var(--color-white);
@@ -99,7 +107,7 @@
   }
 
   .btn-primary:active {
-    transform: translateY(0);
+    transform: scale(0.96);
   }
 
   .btn-primary-sm {
@@ -111,13 +119,17 @@
     color: var(--color-text-accent);
     background: rgba(var(--color-brand-rgb), 0.08);
     border: 1px solid rgba(var(--color-brand-rgb), 0.2);
-    transition: background 0.3s ease, border-color 0.3s ease, color 0.3s ease;
+    transition: background 0.3s ease, border-color 0.3s ease, color 0.3s ease, transform 0.2s ease;
   }
 
   .btn-ghost:hover {
     background: rgba(var(--color-brand-rgb), 0.14);
     border-color: rgba(var(--color-brand-rgb), 0.4);
     color: var(--color-text-bright);
+  }
+
+  .btn-ghost:active {
+    transform: scale(0.96);
   }
 
   .gradient-border {
