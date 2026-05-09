@@ -16,13 +16,15 @@ function createRendererEnv(invokeImpl) {
   const listeners = {};
   const showWindow = vi.fn(() => Promise.resolve());
 
+  const registerListener = (event, handler) => {
+    listeners[event] = listeners[event] || [];
+    listeners[event].push(handler);
+    return Promise.resolve(() => {});
+  };
+
   dom.window.__TAURI__ = {
     event: {
-      listen: vi.fn((event, handler) => {
-        listeners[event] = listeners[event] || [];
-        listeners[event].push(handler);
-        return Promise.resolve(() => {});
-      }),
+      listen: vi.fn(registerListener),
     },
     core: {
       invoke: vi.fn((command, payload) => {
@@ -33,7 +35,9 @@ function createRendererEnv(invokeImpl) {
       }),
     },
     webviewWindow: {
-      getCurrentWindow: vi.fn(() => ({
+      getCurrentWebviewWindow: vi.fn(() => ({
+        label: 'main',
+        listen: vi.fn(registerListener),
         show: showWindow,
       })),
     },
@@ -305,19 +309,27 @@ describe('renderer', () => {
       const listeners = {};
       const bundledCode = 'document.getElementById("root").innerHTML = "<p>loaded</p>";';
 
+      const registerListener = (event, handler) => {
+        listeners[event] = listeners[event] || [];
+        listeners[event].push(handler);
+        return Promise.resolve(() => {});
+      };
+
       dom.window.__TAURI__ = {
         event: {
-          listen: vi.fn((event, handler) => {
-            listeners[event] = listeners[event] || [];
-            listeners[event].push(handler);
-            return Promise.resolve(() => {});
-          }),
+          listen: vi.fn(registerListener),
         },
         core: {
           invoke: vi.fn((cmd) => {
             if (cmd === 'request_bundle') return Promise.resolve(bundledCode);
             return Promise.reject('No file loaded');
           }),
+        },
+        webviewWindow: {
+          getCurrentWebviewWindow: vi.fn(() => ({
+            label: 'main',
+            listen: vi.fn(registerListener),
+          })),
         },
       };
 

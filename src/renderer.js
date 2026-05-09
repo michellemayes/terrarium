@@ -1,5 +1,9 @@
 const { listen } = window.__TAURI__.event;
 const { invoke } = window.__TAURI__.core;
+const { getCurrentWebviewWindow } = window.__TAURI__.webviewWindow;
+
+// Per-window listener; plain `listen` catches emit_to events for any label (tauri-apps/tauri#11379).
+const currentWindow = getCurrentWebviewWindow();
 
 const root = document.getElementById('root');
 const errorBanner = document.getElementById('error-banner');
@@ -156,12 +160,12 @@ if (openBtn) {
   openBtn.addEventListener('click', openFilePicker);
 }
 
-listen('bundle-ready', (event) => {
+currentWindow.listen('bundle-ready', (event) => {
   fileLoaded = true;
   renderBundle(event.payload);
 });
 
-listen('bundle-error', (event) => {
+currentWindow.listen('bundle-error', (event) => {
   showError(event.payload);
 });
 
@@ -186,7 +190,7 @@ listen('menu-open-file', () => {
   openFilePicker();
 });
 
-listen('tauri://drag-drop', (event) => {
+currentWindow.listen('tauri://drag-drop', (event) => {
   dropOverlay.classList.remove('visible');
   const paths = event.payload.paths;
   if (!paths || paths.length === 0) return;
@@ -207,11 +211,11 @@ listen('tauri://drag-drop', (event) => {
   }
 });
 
-listen('tauri://drag-enter', () => {
+currentWindow.listen('tauri://drag-enter', () => {
   dropOverlay.classList.add('visible');
 });
 
-listen('tauri://drag-leave', () => {
+currentWindow.listen('tauri://drag-leave', () => {
   dropOverlay.classList.remove('visible');
 });
 
