@@ -293,6 +293,27 @@ describe('renderer', () => {
         { paths: ['/c.tsx'] }
       );
     });
+
+    it('accepts uppercase .TSX and .JSX extensions on drop', () => {
+      const { emit, window } = createRendererEnv();
+      emit('tauri://drag-drop', { paths: ['/App.TSX', '/Widget.Jsx', '/notes.md'] });
+      expect(window.__TAURI__.core.invoke).toHaveBeenCalledWith('open_file', { path: '/App.TSX' });
+      expect(window.__TAURI__.core.invoke).toHaveBeenCalledWith(
+        'open_in_new_windows',
+        { paths: ['/Widget.Jsx'] }
+      );
+    });
+
+    it('shows transient error without dimming root when dropping only unsupported files', () => {
+      const { document, emit } = createRendererEnv();
+      const root = document.getElementById('root');
+      emit('tauri://drag-drop', { paths: ['/notes.md', '/song.mp3'] });
+      const banner = document.getElementById('error-banner');
+      expect(banner.classList.contains('visible')).toBe(true);
+      expect(document.getElementById('error-title').textContent).toBe('Unsupported file');
+      // The welcome screen should NOT be dimmed for a user-input error.
+      expect(root.style.opacity).not.toBe('0.4');
+    });
   });
 
   describe('request_bundle on load', () => {

@@ -149,6 +149,9 @@ async fn pick_and_open_files(
             let path_str = path.to_string_lossy().to_string();
             open_file(app, window, state, path_str).await
         }
+        // The current window already had a file and the picked files were
+        // opened in new windows. Surface this as "no file selected" so the
+        // frontend's swallow-this-error branch leaves the current render alone.
         None => Err("No file selected".to_string()),
     }
 }
@@ -307,12 +310,27 @@ async fn download_update(
     app: tauri::AppHandle,
     state: State<'_, UpdateState>,
 ) -> Result<(), String> {
-    let update = state
+    // Take the pending update, if any. download_and_install consumes the
+    // Update by value, so we can't keep it for retries — fall back to a
+    // fresh check if state is empty (e.g. on retry after a failed download).
+    let taken = state
         .pending_update
         .lock()
         .map_err(|_| "Internal state error".to_string())?
-        .take()
-        .ok_or_else(|| "No update available".to_string())?;
+        .take();
+
+    let update = match taken {
+        Some(u) => u,
+        None => {
+            use tauri_plugin_updater::UpdaterExt;
+            let updater = app.updater().map_err(|e| e.to_string())?;
+            updater
+                .check()
+                .await
+                .map_err(|e| e.to_string())?
+                .ok_or_else(|| "No update available".to_string())?
+        }
+    };
 
     let result = update.download_and_install(|_, _| {}, || {}).await;
 

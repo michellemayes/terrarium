@@ -19,6 +19,11 @@ const NODEJS_URL = 'https://nodejs.org';
 let fileLoaded = false;
 let detailExpanded = true;
 let firstRunChecked = false;
+let transientErrorTimer = null;
+
+function isSupportedFile(path) {
+  return /\.(tsx|jsx)$/i.test(path);
+}
 
 function showNodeBanner(message) {
   if (!nodeBanner || !nodeBannerText || !nodeBannerLink) return;
@@ -103,6 +108,27 @@ function showError(message) {
 function hideError() {
   errorBanner.classList.remove('visible');
   root.style.opacity = '1';
+  if (transientErrorTimer) {
+    clearTimeout(transientErrorTimer);
+    transientErrorTimer = null;
+  }
+}
+
+// Shows the error banner briefly without dimming root. For user-input errors
+// (e.g. dropping an unsupported file) that shouldn't obscure the welcome
+// screen or the last good render.
+function showTransientError(message, title) {
+  errorTitle.textContent = title || 'Notice';
+  errorDetail.textContent = message;
+  errorBanner.classList.add('visible');
+  detailExpanded = true;
+  errorDetail.style.display = 'block';
+  errorToggle.textContent = '\u25BC';
+  if (transientErrorTimer) clearTimeout(transientErrorTimer);
+  transientErrorTimer = setTimeout(() => {
+    errorBanner.classList.remove('visible');
+    transientErrorTimer = null;
+  }, 4000);
 }
 
 const errorHeader = document.getElementById('error-header');
@@ -191,9 +217,9 @@ listen('tauri://drag-drop', (event) => {
   const paths = event.payload.paths;
   if (!paths || paths.length === 0) return;
 
-  const supported = paths.filter(p => p.endsWith('.tsx') || p.endsWith('.jsx'));
+  const supported = paths.filter(isSupportedFile);
   if (supported.length === 0) {
-    showError('Only .tsx and .jsx files are supported');
+    showTransientError('Only .tsx and .jsx files are supported', 'Unsupported file');
     return;
   }
 
@@ -258,7 +284,7 @@ function renderPlantShelf(recentFiles) {
     item.style.animationDelay = (index * 0.06) + 's';
 
     const filename = file.path.split('/').pop() || file.path;
-    const displayName = filename.replace(/\.(tsx|jsx)$/, '');
+    const displayName = filename.replace(/\.(tsx|jsx)$/i, '');
     item.setAttribute('aria-label', 'Open ' + displayName);
 
     const svg = getPlantSvg(file.plant);
