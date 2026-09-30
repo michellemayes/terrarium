@@ -1,0 +1,104 @@
+name: Release
+
+# Cuts a release automatically once CI passes on master. The version bump is
+# derived from the conventional commits since the last tag that touch the app
+# (src/ or src-tauri/): a breaking change bumps major, feat bumps minor, and
+# fix/perf/refactor bump patch. Anything else (docs, site, chore, ...) is
+# skipped. Releasing commits the bump, tags it, and runs the publish workflow.
+
+on:
+  workflow_run:
+    workflows: [CI]
+    types: [completed]
+    branches: [master]
+
+permissions:
+  contents: write
+
+concurrency:
+  group: release
+  cancel-in-progress: false
+
+jobs:
+  version:
+    if: github.event.workflow_run.conclusion == 'success' && github.event.workflow_run.event == 'push'
+    runs-on: ubuntu-latest
+    outputs:
+      tag: ${{ steps.bump.outputs.tag }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: master
+          fetch-depth: 0
+
+      - name: Determine next version
+        id: next
+        env:
+          HEAD_SHA: ${{ github.event.workflow_run.head_sha }}
+        run: |
+          if [[ "$(git rev-parse HEAD)" != "$HEAD_SHA" ]]; then
+            echo "master has moved past $HEAD_SHA; the newer CI run will release it."
+            exit 0
+          fi
+
+          LAST_TAG=$(git describe --tags --abbrev=0 --match 'v[0-9]*.[0-9]*.[0-9]*')
+          CURRENT="${LAST_TAG#v}"
+          RANGE="$LAST_TAG..HEAD"
+          PATHS=(src src-tauri)
+
+          SUBJECTS=$(git log --format=%s "$RANGE" -- "${PATHS[@]}")
+          BODIES=$(git log --format=%b "$RANGE" -- "${PATHS[@]}")
+          echo "App commits since $LAST_TAG:"
+          echo "${SUBJECTS:-  (none)}"
+
+          BUMP=""
+          if grep -qE '^[a-z]+(\([^)]*\))?!:' <<<"$SUBJECTS" || grep -q '^BREAKING[ -]CHANGE' <<<"$BODIES"; then
+            BUMP=major
+          elif grep -qE '^feat(\([^)]*\))?:' <<<"$SUBJECTS"; then
+            BUMP=minor
+          elif grep -qE '^(fix|perf|refactor)(\([^)]*\))?:' <<<"$SUBJECTS"; then
+            BUMP=patch
+          fi
+
+          if [[ -z "$BUMP" ]]; then
+            echo "No releasable app changes since $LAST_TAG."
+            exit 0
+          fi
+
+          IFS=. read -r MAJOR MINOR PATCH <<<"$CURRENT"
+          case "$BUMP" in
+            major) NEXT="$((MAJOR + 1)).0.0" ;;
+            minor) NEXT="$MAJOR.$((MINOR + 1)).0" ;;
+            patch) NEXT="$MAJOR.$MINOR.$((PATCH + 1))" ;;
+          esac
+          echo "$BUMP bump: $CURRENT -> $NEXT"
+          echo "version=$NEXT" >> "$GITHUB_OUTPUT"
+
+      - name: Bump version, commit, and tag
+        id: bump
+        if: steps.next.outputs.version != ''
+        env:
+          VERSION: ${{ steps.next.outputs.version }}
+        run: |
+          for f in package.json src-tauri/tauri.conf.json; do
+            sed -i "0,/\"version\": \".*\"/s//\"version\": \"$VERSION\"/" "$f"
+          done
+          sed -i "0,/^version = \".*\"/s//version = \"$VERSION\"/" src-tauri/Cargo.toml
+          sed -i "/^name = \"terrarium\"$/{n;s/^version = \".*\"/version = \"$VERSION\"/}" src-tauri/Cargo.lock
+          git diff
+
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add package.json src-tauri/tauri.conf.json src-tauri/Cargo.toml src-tauri/Cargo.lock
+          git commit -m "chore(release): v$VERSION"
+          git tag "v$VERSION"
+          git push --atomic origin HEAD:master "v$VERSION"
+          echo "tag=v$VERSION" >> "$GITHUB_OUTPUT"
+
+  publish:
+    needs: version
+    if: needs.version.outputs.tag != ''
+    uses: ./.github/workflows/publish.yml
+    with:
+      tag: ${{ needs.version.outputs.tag }}
+    secrets: inherit
