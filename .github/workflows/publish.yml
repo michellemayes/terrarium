@@ -10,6 +10,12 @@ on:
         description: Release tag to publish (e.g. v1.2.3)
         required: true
         type: string
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: Existing release tag to (re)publish (e.g. v1.2.3)
+        required: true
+        type: string
 
 permissions:
   contents: write
@@ -57,7 +63,7 @@ jobs:
         run: rm -rf ~/.terrarium/node_modules && npm install --prefix ~/.terrarium react react-dom esbuild
 
       - name: Run tests before publish
-        run: pnpm test && cd src-tauri && cargo test
+        run: pnpm test && cd src-tauri && cargo test -- --test-threads=1
 
       - name: Validate release tag
         run: |
