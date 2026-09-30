@@ -5,6 +5,8 @@ name: Release
 # (src/ or src-tauri/): a breaking change bumps major, feat bumps minor, and
 # fix/perf/refactor bump patch. Anything else (docs, site, chore, ...) is
 # skipped. Releasing commits the bump, tags it, and runs the publish workflow.
+# If there's nothing new to release but the last tag never got published
+# (e.g. its publish run failed), the publish is retried for that tag.
 
 on:
   workflow_run:
@@ -24,7 +26,7 @@ jobs:
     if: github.event.workflow_run.conclusion == 'success' && github.event.workflow_run.event == 'push'
     runs-on: ubuntu-latest
     outputs:
-      tag: ${{ steps.bump.outputs.tag }}
+      tag: ${{ steps.bump.outputs.tag || steps.next.outputs.retry_tag }}
     steps:
       - uses: actions/checkout@v4
         with:
@@ -35,6 +37,7 @@ jobs:
         id: next
         env:
           HEAD_SHA: ${{ github.event.workflow_run.head_sha }}
+          GH_TOKEN: ${{ github.token }}
         run: |
           if [[ "$(git rev-parse HEAD)" != "$HEAD_SHA" ]]; then
             echo "master has moved past $HEAD_SHA; the newer CI run will release it."
@@ -61,6 +64,21 @@ jobs:
           fi
 
           if [[ -z "$BUMP" ]]; then
+            # A previous publish may have failed after tagging; retry it so the
+            # tag doesn't stay without a release.
+            if ! ASSETS=$(gh release view "$LAST_TAG" --json assets --jq '.assets[].name' 2>&1); then
+              if grep -q 'release not found' <<<"$ASSETS"; then
+                ASSETS=""
+              else
+                echo "$ASSETS"
+                exit 1
+              fi
+            fi
+            if ! grep -q '^latest.json$' <<<"$ASSETS"; then
+              echo "$LAST_TAG was tagged but never published; retrying publish."
+              echo "retry_tag=$LAST_TAG" >> "$GITHUB_OUTPUT"
+              exit 0
+            fi
             echo "No releasable app changes since $LAST_TAG."
             exit 0
           fi
