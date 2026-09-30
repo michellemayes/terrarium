@@ -2,6 +2,22 @@
 
 All notable changes to Terrarium are documented in this file.
 
+## [1.0.1] - 2026-09-30
+
+### Bug Fixes
+
+- Add container margins and padding to changelog page (#34) by @michellemayes in [#34](https://github.com/michellemayes/terrarium/pull/34)
+- Match Terrarium title font in Tauri app to website (#35) by @michellemayes in [#35](https://github.com/michellemayes/terrarium/pull/35)
+- Load Google Analytics via next/script (#38) by @michellemayes in [#38](https://github.com/michellemayes/terrarium/pull/38)
+- Address bugs found in end-to-end walkthrough (#40) by @michellemayes in [#40](https://github.com/michellemayes/terrarium/pull/40)
+- Scope window-targeted listeners to current window (#39) by @michellemayes in [#39](https://github.com/michellemayes/terrarium/pull/39)
+
+### Features
+
+- Add SEO competitor comparison pages (#32) by @michellemayes in [#32](https://github.com/michellemayes/terrarium/pull/32)
+- SEO overhaul with docs site, changelog, and structured data (#33) by @michellemayes in [#33](https://github.com/michellemayes/terrarium/pull/33)
+- Add Google tag script in root layout (#36) by @michellemayes in [#36](https://github.com/michellemayes/terrarium/pull/36)
+
 ## [1.0.0] - 2026-04-15
 
 ### Bug Fixes
