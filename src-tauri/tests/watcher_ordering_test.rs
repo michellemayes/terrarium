@@ -3,6 +3,7 @@
 // bundler: it reads the source immediately, sleeps `delay=<ms>` if the source
 // says so, then emits what it read as the bundle.
 use std::path::{Path, PathBuf};
+use std::sync::atomic::{AtomicUsize, Ordering};
 use std::sync::{Arc, Mutex};
 use std::time::Duration;
 use tauri::Listener;
@@ -22,13 +23,28 @@ fn mock_app() -> tauri::App<tauri::test::MockRuntime> {
         .expect("failed to build mock Tauri app")
 }
 
-/// Records every `bundle-ready` payload (the source text the bundle read).
-fn record_renders(app: &tauri::App<tauri::test::MockRuntime>) -> Arc<Mutex<Vec<String>>> {
-    let renders = Arc::new(Mutex::new(Vec::new()));
+#[derive(Default)]
+struct Renders {
+    /// Every `bundle-ready` payload (the source text the bundle read).
+    seen: Mutex<Vec<String>>,
+    /// Bundles that have started and not yet finished.
+    running: AtomicUsize,
+}
+
+fn record_renders(app: &tauri::App<tauri::test::MockRuntime>) -> Arc<Renders> {
+    let renders = Arc::new(Renders::default());
     let sink = renders.clone();
     app.handle().listen_any("bundle-ready", move |event| {
         let source: String = serde_json::from_str(event.payload()).unwrap();
-        sink.lock().unwrap().push(source);
+        sink.seen.lock().unwrap().push(source);
+    });
+    let sink = renders.clone();
+    app.handle().listen_any("bundle-started", move |_| {
+        sink.running.fetch_add(1, Ordering::SeqCst);
+    });
+    let sink = renders.clone();
+    app.handle().listen_any("bundle-finished", move |_| {
+        sink.running.fetch_sub(1, Ordering::SeqCst);
     });
     renders
 }
@@ -44,25 +60,28 @@ fn save(file: &Path, contents: &str) {
     std::fs::write(file, contents).unwrap();
 }
 
-/// Waits until `renders` is non-empty and has stopped changing for 1.5 s.
-async fn settled(renders: &Arc<Mutex<Vec<String>>>) -> Vec<String> {
+/// Waits until something has rendered, no bundle is running, and nothing has
+/// changed for 1.5 s. Checking for running bundles matters: macOS can report
+/// the fixture's initial write to the new watcher, and that stray render must
+/// not count as settled while a slow bundle is still going.
+async fn settled(renders: &Renders) -> Vec<String> {
     let deadline = tokio::time::Instant::now() + Duration::from_secs(30);
     let mut last_len = 0;
     let mut quiet_since = tokio::time::Instant::now();
     loop {
         tokio::time::sleep(Duration::from_millis(100)).await;
-        let len = renders.lock().unwrap().len();
-        if len != last_len {
+        let len = renders.seen.lock().unwrap().len();
+        if len != last_len || renders.running.load(Ordering::SeqCst) > 0 {
             last_len = len;
             quiet_since = tokio::time::Instant::now();
         }
         if len > 0 && quiet_since.elapsed() >= Duration::from_millis(1500) {
-            return renders.lock().unwrap().clone();
+            return renders.seen.lock().unwrap().clone();
         }
         assert!(
             tokio::time::Instant::now() < deadline,
             "no render settled; got {:?}",
-            renders.lock().unwrap()
+            renders.seen.lock().unwrap()
         );
     }
 }
@@ -162,13 +181,13 @@ async fn unchanged_file_is_not_rebuilt_on_watch() {
         watch_file_since(app.handle().clone(), file.clone(), "main".into(), stamp).unwrap();
 
     tokio::time::sleep(Duration::from_millis(2000)).await;
-    assert!(renders.lock().unwrap().is_empty());
+    assert!(renders.seen.lock().unwrap().is_empty());
 }
 
 /// Like `settled`, but returns an empty list if nothing renders within 5 s.
-async fn settled_or_empty(renders: &Arc<Mutex<Vec<String>>>) -> Vec<String> {
+async fn settled_or_empty(renders: &Renders) -> Vec<String> {
     tokio::time::sleep(Duration::from_millis(5000)).await;
-    if renders.lock().unwrap().is_empty() {
+    if renders.seen.lock().unwrap().is_empty() {
         return Vec::new();
     }
     settled(renders).await
