@@ -157,7 +157,7 @@ export default function ComparePage() {
                 ['React Cosmos', 'Minimal', 'Yes', 'No', 'Browser'],
                 ['CodeSandbox', 'Yes', 'Yes', 'No', 'Browser'],
               ].map(([tool, zeroConfig, liveReload, ai, platform], i) => (
-                <tr key={i} className="border-b border-violet-500/8 hover:bg-violet-500/[0.04] transition-colors">
+                <tr key={i} className="border-b border-violet-500/8 hover:bg-violet-500/4 transition-colors">
                   <td className="py-3 px-4 font-medium text-bright">{tool}</td>
                   <td className="py-3 px-4 text-center">{zeroConfig}</td>
                   <td className="py-3 px-4 text-center">{liveReload}</td>

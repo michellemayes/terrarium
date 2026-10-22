@@ -152,7 +152,7 @@ function GroupBadge({ name }: { name: string }) {
   }
   return (
     <span
-      className={`inline-flex items-center text-[11px] font-mono uppercase tracking-wider px-2 py-0.5 rounded border ${tone.className}`}
+      className={`inline-flex items-center text-[11px] font-mono uppercase tracking-wider px-2 py-0.5 rounded-sm border ${tone.className}`}
     >
       {tone.label}
     </span>
@@ -168,7 +168,7 @@ export default function ChangelogPage() {
         <p className="text-xs uppercase tracking-widest text-dim font-medium mb-4">
           Reference
         </p>
-        <h1 className="font-serif text-4xl md:text-5xl text-bright leading-tight mb-4">
+        <h1 className="font-serif text-4xl md:text-5xl text-bright leading-tight md:leading-none mb-4">
           Changelog
         </h1>
         <p className="text-lg text-muted leading-relaxed max-w-2xl">

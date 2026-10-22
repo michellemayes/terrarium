@@ -66,7 +66,7 @@ export default function DocsLayout({
   return (
     <>
       <nav
-        className="fixed top-0 left-0 right-0 z-50 bg-[var(--color-base)]/85 backdrop-blur-md border-b border-violet-500/10"
+        className="fixed top-0 left-0 right-0 z-50 bg-base/85 backdrop-blur-md border-b border-violet-500/10"
         aria-label="Main"
       >
         <a href="#main-content" className="skip-link">

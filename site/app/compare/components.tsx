@@ -82,7 +82,7 @@ function GitHubIcon() {
 
 export function CompareNav() {
   return (
-    <nav className="fixed top-0 left-0 right-0 z-50 bg-[var(--color-base)]/80 backdrop-blur-md" aria-label="Main">
+    <nav className="fixed top-0 left-0 right-0 z-50 bg-base/80 backdrop-blur-md" aria-label="Main">
       <a href="#main-content" className="skip-link">Skip to main content</a>
       <div className="mx-auto max-w-6xl px-6 py-5 flex items-center justify-between">
         <Link href="/" className="flex items-center gap-2.5">
@@ -187,8 +187,8 @@ export function ComparisonTable({
             {headers.map((h, i) => (
               <th
                 key={i}
-                className={`py-3 px-4 text-left font-semibold text-bright border-b border-violet-500/15 ${
-                  i === 0 ? 'min-w-[180px]' : 'text-center min-w-[120px]'
+                className={`py-3 px-4 font-semibold text-bright border-b border-violet-500/15 ${
+                  i === 0 ? 'text-left min-w-[180px]' : 'text-center min-w-[120px]'
                 }`}
               >
                 {h}
@@ -200,7 +200,7 @@ export function ComparisonTable({
           {rows.map((row, i) => (
             <tr
               key={i}
-              className="border-b border-violet-500/8 hover:bg-violet-500/[0.04] transition-colors"
+              className="border-b border-violet-500/8 hover:bg-violet-500/4 transition-colors"
             >
               <td className="py-3 px-4 text-muted">{row.feature}</td>
               {row.values.map((v, j) => (

@@ -16,7 +16,7 @@ export function DocHeader({
           {eyebrow}
         </p>
       ) : null}
-      <h1 className="font-serif text-4xl md:text-5xl text-bright leading-tight mb-4">
+      <h1 className="font-serif text-4xl md:text-5xl text-bright leading-tight md:leading-none mb-4">
         {title}
       </h1>
       {description ? (
@@ -64,7 +64,7 @@ export function P({ children }: { children: ReactNode }) {
 
 export function Code({ children }: { children: ReactNode }) {
   return (
-    <code className="font-mono text-[14px] text-violet-300 bg-violet-500/10 rounded px-1.5 py-0.5">
+    <code className="font-mono text-[14px] text-violet-300 bg-violet-500/10 rounded-sm px-1.5 py-0.5">
       {children}
     </code>
   )

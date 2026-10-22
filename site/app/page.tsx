@@ -218,7 +218,7 @@ const features = [
 
 function Nav() {
   return (
-    <nav className="fixed top-0 left-0 right-0 z-50 bg-[var(--color-base)]/80 backdrop-blur-md" aria-label="Main">
+    <nav className="fixed top-0 left-0 right-0 z-50 bg-base/80 backdrop-blur-md" aria-label="Main">
       <a href="#main-content" className="skip-link">Skip to main content</a>
       <div className="mx-auto max-w-6xl px-6 py-5 flex items-center justify-between">
         <div className="flex items-center gap-2.5">
@@ -282,7 +282,7 @@ function Hero() {
       </div>
 
       {/* Heading */}
-      <h1 className="relative font-serif text-5xl sm:text-6xl md:text-7xl lg:text-[5.5rem] text-center max-w-4xl leading-[1.08] animate-fade-up-1">
+      <h1 className="relative font-serif text-5xl sm:text-6xl md:text-7xl lg:text-[5.5rem] text-center max-w-4xl leading-[1.08] sm:leading-none animate-fade-up-1">
         Set your React
         <br />
         components{' '}
@@ -290,7 +290,7 @@ function Hero() {
       </h1>
 
       {/* Subtitle */}
-      <p className="relative mt-7 text-lg md:text-xl text-muted text-center max-w-2xl leading-relaxed animate-fade-up-2">
+      <p className="relative mt-7 text-lg md:text-xl text-muted text-center max-w-2xl leading-relaxed md:leading-7 animate-fade-up-2">
         Your Claude artifacts deserve more than a chat window.
         <br />
         <span className="text-accent">Preview them instantly on your Mac.</span>
@@ -353,7 +353,7 @@ function WhatIsTerrarium() {
         </Reveal>
 
         <Reveal delay={100}>
-          <div className="space-y-6 text-[17px] md:text-lg leading-[1.75] text-muted">
+          <div className="space-y-6 text-[17px] md:text-lg leading-[1.75] md:leading-7 text-muted">
             <p>
               Terrarium is a free, open-source macOS application that instantly
               previews React components directly from{' '}
@@ -642,7 +642,7 @@ function DownloadCTA() {
             <p className="text-xs text-dim mb-4 uppercase tracking-widest font-medium">
               Install with Homebrew
             </p>
-            <div className="font-mono text-xs sm:text-sm md:text-base text-violet-300 bg-black/30 rounded-xl px-5 py-3 text-left space-y-1 overflow-x-auto">
+            <div className="font-mono text-xs sm:text-sm md:text-[1rem]/6 text-violet-300 bg-black/30 rounded-xl px-5 py-3 text-left space-y-1 overflow-x-auto">
               <CopyableCommand command="brew tap michellemayes/terrarium" />
               <CopyableCommand command="brew install --cask terrarium" />
             </div>
