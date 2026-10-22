@@ -2,6 +2,13 @@
 
 All notable changes to Terrarium are documented in this file.
 
+## [1.0.2] - 2026-10-22
+
+### Bug Fixes
+
+- Patch open CVEs across npm, site and Rust dependencies (#44) by @michellemayes in [#44](https://github.com/michellemayes/terrarium/pull/44)
+- Races found by TLA+/Lean models of hot reload, windows and recent files (#45) by @michellemayes in [#45](https://github.com/michellemayes/terrarium/pull/45)
+
 ## [1.0.1] - 2026-09-30
 
 ### Bug Fixes
