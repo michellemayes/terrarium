@@ -1,4 +1,7 @@
 use std::path::{Path, PathBuf};
+use std::time::Duration;
+
+const BUNDLE_TIMEOUT: Duration = Duration::from_secs(120);
 
 pub fn cache_dir() -> PathBuf {
     dirs::home_dir()
@@ -118,6 +121,14 @@ pub async fn bundle_tsx<R: tauri::Runtime>(
     app_handle: &tauri::AppHandle<R>,
     tsx_path: &Path,
 ) -> Result<String, String> {
+    bundle_tsx_with_timeout(app_handle, tsx_path, BUNDLE_TIMEOUT).await
+}
+
+pub async fn bundle_tsx_with_timeout<R: tauri::Runtime>(
+    app_handle: &tauri::AppHandle<R>,
+    tsx_path: &Path,
+    timeout: Duration,
+) -> Result<String, String> {
     use tauri::Emitter;
     use tokio::io::{AsyncBufReadExt, BufReader};
 
@@ -138,6 +149,9 @@ pub async fn bundle_tsx<R: tauri::Runtime>(
         .env("PATH", &path_env)
         .stdout(std::process::Stdio::piped())
         .stderr(std::process::Stdio::piped())
+        // On timeout the Child is dropped; kill it so stderr reaches EOF and
+        // the stderr task below can finish.
+        .kill_on_drop(true)
         .spawn()
         .map_err(|e| format!("Failed to run bundler: {e}"))?;
 
@@ -160,11 +174,7 @@ pub async fn bundle_tsx<R: tauri::Runtime>(
         }
     });
 
-    let result = tokio::time::timeout(
-        std::time::Duration::from_secs(120),
-        child.wait_with_output(),
-    )
-    .await;
+    let result = tokio::time::timeout(timeout, child.wait_with_output()).await;
 
     // Ensure stderr task completes
     let _ = stderr_task.await;
@@ -172,7 +182,7 @@ pub async fn bundle_tsx<R: tauri::Runtime>(
     let _ = app_handle.emit("bundle-finished", ());
 
     let output = result
-        .map_err(|_| "Bundler timed out after 120 seconds".to_string())?
+        .map_err(|_| format!("Bundler timed out after {} seconds", timeout.as_secs()))?
         .map_err(|e| format!("Failed to run bundler: {e}"))?;
 
     let stdout = String::from_utf8_lossy(&output.stdout).to_string();

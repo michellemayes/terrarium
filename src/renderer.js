@@ -25,6 +25,9 @@ let detailExpanded = true;
 let firstRunChecked = false;
 let transientErrorTimer = null;
 
+// open_file rejects with this when a newer open in this window replaced it.
+const SUPERSEDED = 'Superseded';
+
 function isSupportedFile(path) {
   return /\.(tsx|jsx)$/i.test(path);
 }
@@ -166,7 +169,7 @@ function openFilePicker() {
       renderBundle(bundledCode);
     })
     .catch(err => {
-      if (err !== 'No file selected') {
+      if (err !== 'No file selected' && err !== SUPERSEDED) {
         showError(`Failed to load:\n${err}`);
       }
     });
@@ -178,7 +181,11 @@ function openFileByPath(filePath) {
       fileLoaded = true;
       renderBundle(bundledCode);
     })
-    .catch(err => showError(`Failed to load:\n${err}`));
+    .catch(err => {
+      if (err !== SUPERSEDED) {
+        showError(`Failed to load:\n${err}`);
+      }
+    });
 }
 
 const openBtn = document.getElementById('open-btn');
