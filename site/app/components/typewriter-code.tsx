@@ -210,7 +210,7 @@ export function TypewriterCode({ onComplete }: { onComplete?: () => void }) {
     }
 
     return lines.map((line) => (
-      <div key={line.key} className="min-h-[1.75rem]">
+      <div key={line.key} className="min-h-7">
         {line.spans.map((span, si) => (
           <span key={si} className={span.className}>
             {span.text}
@@ -227,7 +227,7 @@ export function TypewriterCode({ onComplete }: { onComplete?: () => void }) {
           {reducedMotion || done ? (
             // Full static render
             codeLines.map((line, li) => (
-              <div key={li} className="min-h-[1.75rem]">
+              <div key={li} className="min-h-7">
                 {line.map((token, ti) => (
                   <span key={ti} className={token.className}>
                     {token.text}
@@ -239,7 +239,7 @@ export function TypewriterCode({ onComplete }: { onComplete?: () => void }) {
             <>
               {renderCode()}
               {/* Blinking cursor */}
-              <span className="inline-block w-[2px] h-[1em] bg-violet-400 align-text-bottom animate-blink ml-[1px]" />
+              <span className="inline-block w-[2px] h-[1em] bg-violet-400 align-text-bottom animate-blink ml-px" />
             </>
           ) : (
             // Placeholder height to prevent layout shift

@@ -1,6 +1,273 @@
-@tailwind base;
-@tailwind components;
-@tailwind utilities;
+@import 'tailwindcss';
+
+@theme inline {
+  --font-serif: var(--font-display), Georgia, serif;
+  --font-sans: var(--font-body), system-ui, sans-serif;
+  --font-mono: var(--font-mono), monospace;
+
+  --color-base: var(--color-base);
+  --color-deep: var(--color-deep);
+  --color-brand: var(--color-brand);
+  --color-brand-light: var(--color-brand-light);
+  --color-brand-dark: var(--color-brand-dark);
+  --color-brand-soft: var(--color-brand-soft);
+
+  --color-accent-amber: var(--color-accent-amber);
+  --color-accent-pink: var(--color-accent-pink);
+
+  --text-color-bright: var(--color-text-bright);
+  --text-color-accent: var(--color-text-accent);
+  --text-color-muted: var(--color-text-muted);
+  --text-color-dim: var(--color-text-dim);
+  --text-color-subtle: var(--color-text-subtle);
+}
+
+@theme {
+  --color-surface: #0f0a1a;
+  --color-elevated: #1a1228;
+
+  --animate-float: float 6s ease-in-out infinite;
+  --animate-sparkle: sparkle 3s ease-in-out infinite;
+  --animate-sparkle-delayed: sparkle 3s ease-in-out 1s infinite;
+  --animate-sparkle-slow: sparkle 4s ease-in-out 0.5s infinite;
+  --animate-fade-up: fade-up 0.8s ease-out both;
+  --animate-fade-up-1: fade-up 0.8s ease-out 0.1s both;
+  --animate-fade-up-2: fade-up 0.8s ease-out 0.2s both;
+  --animate-fade-up-3: fade-up 0.8s ease-out 0.35s both;
+  --animate-fade-up-4: fade-up 0.8s ease-out 0.5s both;
+  --animate-glow-pulse: glow-pulse 4s ease-in-out infinite;
+  --animate-scroll-hint: scroll-hint 2s ease-in-out infinite;
+  --animate-fade-in: fade-in 0.3s ease-out both;
+  --animate-blink: blink 1s steps(2) infinite;
+  --animate-boot-progress: boot-progress 0.8s cubic-bezier(0.25, 1, 0.5, 1) both;
+
+  @keyframes float {
+    0%,
+    100% {
+      transform: translateY(0);
+    }
+    50% {
+      transform: translateY(-14px);
+    }
+  }
+  @keyframes sparkle {
+    0%,
+    100% {
+      opacity: 0.3;
+      transform: scale(0.8);
+    }
+    50% {
+      opacity: 1;
+      transform: scale(1.2);
+    }
+  }
+  @keyframes fade-up {
+    0% {
+      opacity: 0;
+      transform: translateY(24px);
+    }
+    100% {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+  @keyframes glow-pulse {
+    0%,
+    100% {
+      opacity: 0.4;
+    }
+    50% {
+      opacity: 0.8;
+    }
+  }
+  @keyframes scroll-hint {
+    0%,
+    100% {
+      transform: translateY(0);
+      opacity: 0.5;
+    }
+    50% {
+      transform: translateY(4px);
+      opacity: 1;
+    }
+  }
+  @keyframes fade-in {
+    0% {
+      opacity: 0;
+    }
+    100% {
+      opacity: 1;
+    }
+  }
+  @keyframes blink {
+    0%,
+    100% {
+      opacity: 1;
+    }
+    50% {
+      opacity: 0;
+    }
+  }
+  @keyframes boot-progress {
+    0% {
+      width: 0%;
+    }
+    100% {
+      width: 100%;
+    }
+  }
+}
+
+/*
+  The default border color has changed to `currentcolor` in Tailwind CSS v4,
+  so we've added these compatibility styles to make sure everything still
+  looks the same as it did with Tailwind CSS v3.
+
+  If we ever want to remove these styles, we need to add an explicit border
+  color utility to any element that depends on these defaults.
+*/
+@layer base {
+  *,
+  ::after,
+  ::before,
+  ::backdrop,
+  ::file-selector-button {
+    border-color: var(--color-gray-200, currentcolor);
+  }
+}
+
+/* Tailwind v4 preflight resets buttons to `cursor: default`; keep the v3 pointer. */
+@layer base {
+  button:not(:disabled),
+  [role='button']:not(:disabled) {
+    cursor: pointer;
+  }
+}
+
+@utility glass {
+  background: rgba(var(--color-brand-rgb), 0.06);
+  border: 1px solid rgba(var(--color-brand-rgb), 0.12);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  contain: layout style;
+}
+
+@utility glass-hover {
+  transition:
+    background 0.3s ease,
+    border-color 0.3s ease,
+    box-shadow 0.3s ease;
+
+  &:hover {
+    background: rgba(var(--color-brand-rgb), 0.12);
+    border-color: rgba(var(--color-brand-rgb), 0.28);
+    box-shadow: 0 0 32px rgba(var(--color-brand-rgb), 0.08);
+  }
+
+  &:hover .feature-icon {
+    transform: scale(1.08);
+    background: rgba(139, 92, 246, 0.18);
+  }
+}
+
+@utility gradient-text {
+  background: linear-gradient(
+    135deg,
+    var(--color-text-accent) 0%,
+    var(--color-accent-pink) 50%,
+    var(--color-accent-amber) 100%
+  );
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+@utility gradient-text-subtle {
+  background: linear-gradient(
+    135deg,
+    var(--color-text-bright) 0%,
+    var(--color-text-accent) 100%
+  );
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+@utility btn-primary {
+  @apply inline-flex items-center justify-center gap-2.5 px-7 py-3.5 rounded-xl font-medium;
+  color: var(--color-white);
+  background: linear-gradient(
+    135deg,
+    var(--color-brand),
+    var(--color-brand-light)
+  );
+  box-shadow:
+    0 0 24px rgba(var(--color-brand-rgb), 0.3),
+    inset 0 1px 0 rgba(255, 255, 255, 0.1);
+  transition:
+    transform 0.2s ease,
+    box-shadow 0.3s ease;
+
+  &:hover {
+    box-shadow:
+      0 0 36px rgba(var(--color-brand-rgb), 0.5),
+      inset 0 1px 0 rgba(255, 255, 255, 0.15);
+    transform: translateY(-1px);
+  }
+
+  &:active {
+    transform: scale(0.96);
+  }
+}
+
+@utility btn-primary-sm {
+  @apply px-5 py-2.5 text-sm;
+}
+
+@utility btn-ghost {
+  @apply inline-flex items-center justify-center gap-2.5 px-7 py-3.5 rounded-xl font-medium;
+  color: var(--color-text-accent);
+  background: rgba(var(--color-brand-rgb), 0.08);
+  border: 1px solid rgba(var(--color-brand-rgb), 0.2);
+  transition:
+    background 0.3s ease,
+    border-color 0.3s ease,
+    color 0.3s ease,
+    transform 0.2s ease;
+
+  &:hover {
+    background: rgba(var(--color-brand-rgb), 0.14);
+    border-color: rgba(var(--color-brand-rgb), 0.4);
+    color: var(--color-text-bright);
+  }
+
+  &:active {
+    transform: scale(0.96);
+  }
+}
+
+@utility gradient-border {
+  position: relative;
+  background: linear-gradient(
+    135deg,
+    rgba(var(--color-brand-rgb), 0.3),
+    rgba(var(--color-accent-pink-rgb), 0.15),
+    rgba(var(--color-brand-rgb), 0.1)
+  );
+  padding: 1px;
+  border-radius: 1rem;
+  contain: layout style;
+}
+
+@utility gradient-border-shimmer {
+  background-size: 300% 300%;
+  animation: border-shimmer 8s ease-in-out infinite;
+}
+
+@utility gradient-border-inner {
+  background: var(--color-deep);
+  border-radius: calc(1rem - 1px);
+}
 
 @layer base {
   :root {
@@ -53,103 +320,6 @@
     background: rgba(var(--color-brand-rgb), 0.4);
     color: var(--color-white);
   }
-}
-
-@layer components {
-  .glass {
-    background: rgba(var(--color-brand-rgb), 0.06);
-    border: 1px solid rgba(var(--color-brand-rgb), 0.12);
-    backdrop-filter: blur(16px);
-    -webkit-backdrop-filter: blur(16px);
-    contain: layout style;
-  }
-
-  .glass-hover {
-    transition: background 0.3s ease, border-color 0.3s ease, box-shadow 0.3s ease;
-  }
-
-  .glass-hover:hover {
-    background: rgba(var(--color-brand-rgb), 0.12);
-    border-color: rgba(var(--color-brand-rgb), 0.28);
-    box-shadow: 0 0 32px rgba(var(--color-brand-rgb), 0.08);
-  }
-
-  .glass-hover:hover .feature-icon {
-    transform: scale(1.08);
-    background: rgba(139, 92, 246, 0.18);
-  }
-
-  .gradient-text {
-    background: linear-gradient(135deg, var(--color-text-accent) 0%, var(--color-accent-pink) 50%, var(--color-accent-amber) 100%);
-    -webkit-background-clip: text;
-    -webkit-text-fill-color: transparent;
-    background-clip: text;
-  }
-
-  .gradient-text-subtle {
-    background: linear-gradient(135deg, var(--color-text-bright) 0%, var(--color-text-accent) 100%);
-    -webkit-background-clip: text;
-    -webkit-text-fill-color: transparent;
-    background-clip: text;
-  }
-
-  .btn-primary {
-    @apply inline-flex items-center justify-center gap-2.5 px-7 py-3.5 rounded-xl font-medium;
-    color: var(--color-white);
-    background: linear-gradient(135deg, var(--color-brand), var(--color-brand-light));
-    box-shadow: 0 0 24px rgba(var(--color-brand-rgb), 0.3), inset 0 1px 0 rgba(255, 255, 255, 0.1);
-    transition: transform 0.2s ease, box-shadow 0.3s ease;
-  }
-
-  .btn-primary:hover {
-    box-shadow: 0 0 36px rgba(var(--color-brand-rgb), 0.5), inset 0 1px 0 rgba(255, 255, 255, 0.15);
-    transform: translateY(-1px);
-  }
-
-  .btn-primary:active {
-    transform: scale(0.96);
-  }
-
-  .btn-primary-sm {
-    @apply px-5 py-2.5 text-sm;
-  }
-
-  .btn-ghost {
-    @apply inline-flex items-center justify-center gap-2.5 px-7 py-3.5 rounded-xl font-medium;
-    color: var(--color-text-accent);
-    background: rgba(var(--color-brand-rgb), 0.08);
-    border: 1px solid rgba(var(--color-brand-rgb), 0.2);
-    transition: background 0.3s ease, border-color 0.3s ease, color 0.3s ease, transform 0.2s ease;
-  }
-
-  .btn-ghost:hover {
-    background: rgba(var(--color-brand-rgb), 0.14);
-    border-color: rgba(var(--color-brand-rgb), 0.4);
-    color: var(--color-text-bright);
-  }
-
-  .btn-ghost:active {
-    transform: scale(0.96);
-  }
-
-  .gradient-border {
-    position: relative;
-    background: linear-gradient(135deg, rgba(var(--color-brand-rgb), 0.3), rgba(var(--color-accent-pink-rgb), 0.15), rgba(var(--color-brand-rgb), 0.1));
-    padding: 1px;
-    border-radius: 1rem;
-    contain: layout style;
-  }
-
-  .gradient-border-shimmer {
-    background-size: 300% 300%;
-    animation: border-shimmer 8s ease-in-out infinite;
-  }
-
-  .gradient-border-inner {
-    background: var(--color-deep);
-    border-radius: calc(1rem - 1px);
-  }
-
 }
 
 /* Scrollbar */
