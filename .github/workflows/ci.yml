@@ -65,4 +65,8 @@ jobs:
       - uses: pnpm/action-setup@v4
       - run: pnpm install
       - run: cd src-tauri/resources && pnpm install
+      # The bundler tests install into fresh cache dirs. The first install from
+      # a cold npm cache has taken over 120 s here, so fill the cache first.
+      - name: Warm npm cache with bundler dependencies
+        run: npm install --prefix "$RUNNER_TEMP/bundler-deps" $BUNDLER_DEPS
       - run: pnpm test
