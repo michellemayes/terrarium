@@ -4262,7 +4262,7 @@ dependencies = [
 
 [[package]]
 name = "terrarium"
-version = "1.0.1"
+version = "1.0.2"
 dependencies = [
  "dirs",
  "log",
