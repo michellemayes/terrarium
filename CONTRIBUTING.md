@@ -37,6 +37,7 @@ pnpm tauri dev -- -- test.tsx
 ```bash
 pnpm test                       # Node tests (bundler, renderer)
 cd src-tauri && cargo test      # Rust tests
+formal/check.sh                 # TLA+ models and Lean proofs (see formal/README.md)
 ```
 
 ## Project Structure

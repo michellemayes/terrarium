@@ -34,3 +34,7 @@ screenshots/
 
 # npm lock files (using pnpm instead)
 package-lock.json
+
+# TLC trace dumps
+formal/tla/*_TTrace_*
+formal/tla/states/
