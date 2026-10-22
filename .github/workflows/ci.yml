@@ -6,6 +6,13 @@ on:
   pull_request:
     branches: [master]
 
+# npm's post-install audit request can stall for minutes, which ran the
+# bundler's installs past their 120 s timeout. BUNDLER_DEPS mirrors
+# basePackages in src-tauri/resources/bundler.mjs.
+env:
+  npm_config_audit: false
+  BUNDLER_DEPS: react react-dom esbuild postcss tailwindcss@3 lucide-react recharts date-fns framer-motion clsx tailwind-merge class-variance-authority
+
 jobs:
   changes:
     runs-on: ubuntu-latest
@@ -44,7 +51,7 @@ jobs:
       - name: Clippy
         run: cd src-tauri && cargo clippy -- -D warnings
       - name: Pre-install bundler dependencies
-        run: rm -rf ~/.terrarium/node_modules && npm install --prefix ~/.terrarium react react-dom esbuild
+        run: rm -rf ~/.terrarium/node_modules && npm install --prefix ~/.terrarium $BUNDLER_DEPS
       - name: Run tests
         run: cd src-tauri && cargo test -- --test-threads=1
 
