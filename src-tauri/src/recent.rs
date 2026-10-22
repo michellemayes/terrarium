@@ -1,11 +1,21 @@
 use serde::{Deserialize, Serialize};
 use std::path::PathBuf;
+use std::sync::{Mutex, MutexGuard};
 use std::time::{SystemTime, UNIX_EPOCH};
 
 use crate::bundler::cache_dir;
 
 const MAX_RECENT: usize = 6;
 const NUM_PLANT_TYPES: u32 = 6; // u32 to match hash arithmetic in plant_index
+
+/// Serialises every read-modify-write of the recent-files list. Several
+/// bundles finishing at once call `record_recent` from different threads
+/// (formal/tla/RecentFiles.tla).
+static RECENT_LOCK: Mutex<()> = Mutex::new(());
+
+fn lock_recent() -> MutexGuard<'static, ()> {
+    RECENT_LOCK.lock().unwrap_or_else(|e| e.into_inner())
+}
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 pub struct RecentFile {
@@ -29,15 +39,28 @@ pub fn read_recent() -> Vec<RecentFile> {
     serde_json::from_str(&data).unwrap_or_default()
 }
 
-/// Writes the given list to disk (best-effort). Used to prune dead entries.
+/// Writes the given list to disk (best-effort). The file is replaced
+/// atomically so a concurrent reader never sees it truncated.
 pub fn write_recent(entries: &[RecentFile]) {
     let path = recent_file_path();
     if let Some(parent) = path.parent() {
         let _ = std::fs::create_dir_all(parent);
     }
     if let Ok(json) = serde_json::to_string_pretty(entries) {
-        let _ = std::fs::write(&path, json);
+        let tmp = path.with_extension("json.tmp");
+        if std::fs::write(&tmp, json).is_ok() {
+            let _ = std::fs::rename(&tmp, &path);
+        }
     }
+}
+
+/// Removes entries for which `keep` returns false, writes the result to
+/// disk and returns it.
+pub fn prune_recent(keep: impl Fn(&RecentFile) -> bool) -> Vec<RecentFile> {
+    let _guard = lock_recent();
+    let live: Vec<RecentFile> = read_recent().into_iter().filter(|e| keep(e)).collect();
+    write_recent(&live);
+    live
 }
 
 /// Adds or bumps `file_path` to the front of the recent files list.
@@ -49,9 +72,14 @@ pub fn write_recent(entries: &[RecentFile]) {
 /// - The list is capped at `MAX_RECENT` (6) entries.
 /// - The updated list is written to disk and returned.
 pub fn record_recent(file_path: &str) -> Vec<RecentFile> {
-    let mut list = read_recent();
-    let now = iso_timestamp();
+    let _guard = lock_recent();
+    let list = push_recent(read_recent(), file_path, iso_timestamp());
+    write_recent(&list);
+    list
+}
 
+/// The list update behind [`record_recent`], without the file I/O.
+pub fn push_recent(mut list: Vec<RecentFile>, file_path: &str, now: String) -> Vec<RecentFile> {
     let existing = list.iter().position(|r| r.path == file_path);
 
     let entry = if let Some(idx) = existing {
@@ -59,8 +87,10 @@ pub fn record_recent(file_path: &str) -> Vec<RecentFile> {
         entry.opened_at = now;
         entry
     } else {
-        // Pick a plant type not already on the shelf when possible.
-        let used: std::collections::HashSet<u8> = list.iter().map(|r| r.plant).collect();
+        // Pick a plant type not already on the shelf when possible. Only the
+        // entries that survive the truncation below count as used.
+        let used: std::collections::HashSet<u8> =
+            list.iter().take(MAX_RECENT - 1).map(|r| r.plant).collect();
         let preferred = plant_index(file_path);
         let plant = if used.contains(&preferred) {
             (0..NUM_PLANT_TYPES as u8)
@@ -78,7 +108,6 @@ pub fn record_recent(file_path: &str) -> Vec<RecentFile> {
 
     list.insert(0, entry);
     list.truncate(MAX_RECENT);
-    write_recent(&list);
     list
 }
 
@@ -188,27 +217,11 @@ mod tests {
 
     #[test]
     fn record_recent_adds_and_caps() {
-        // Since record_recent uses the real cache_dir, we test the core
-        // logic in isolation by directly manipulating a list.
         let mut list: Vec<RecentFile> = Vec::new();
 
-        // Simulate recording 7 files (exceeding the cap of 6).
+        // Record 7 files (exceeding the cap of 6).
         for i in 0..7 {
-            let path = format!("/tmp/file-{i}.tsx");
-            let existing = list.iter().position(|r| r.path == path);
-            let entry = if let Some(idx) = existing {
-                let mut e = list.remove(idx);
-                e.opened_at = iso_timestamp();
-                e
-            } else {
-                RecentFile {
-                    path: path.clone(),
-                    plant: plant_index(&path),
-                    opened_at: iso_timestamp(),
-                }
-            };
-            list.insert(0, entry);
-            list.truncate(MAX_RECENT);
+            list = push_recent(list, &format!("/tmp/file-{i}.tsx"), iso_timestamp());
         }
 
         assert_eq!(list.len(), 6);
@@ -218,7 +231,7 @@ mod tests {
 
     #[test]
     fn record_recent_bumps_existing_to_front() {
-        let mut list = vec![
+        let list = vec![
             RecentFile {
                 path: "/tmp/a.tsx".to_string(),
                 plant: 1,
@@ -236,21 +249,41 @@ mod tests {
             },
         ];
 
-        let path = "/tmp/b.tsx";
-        let existing = list.iter().position(|r| r.path == path);
-        let entry = if let Some(idx) = existing {
-            let mut e = list.remove(idx);
-            e.opened_at = iso_timestamp();
-            e
-        } else {
-            unreachable!()
-        };
-        list.insert(0, entry);
-        list.truncate(MAX_RECENT);
+        let list = push_recent(list, "/tmp/b.tsx", iso_timestamp());
 
         assert_eq!(list[0].path, "/tmp/b.tsx");
         assert_eq!(list[0].plant, 2);
         assert_eq!(list.len(), 3);
+    }
+
+    #[test]
+    fn push_recent_keeps_plants_distinct_when_shelf_is_full() {
+        // formal/lean/RecentPlants.lean: on a full shelf all six plants count
+        // as used, including the one on the entry about to be evicted, so
+        // the new file fell back to its hash plant and duplicated another.
+        let new_path = "/tmp/new.tsx";
+        let preferred = plant_index(new_path);
+        let evicted_plant = (preferred + 1) % NUM_PLANT_TYPES as u8;
+        let mut plants: Vec<u8> = (0..NUM_PLANT_TYPES as u8)
+            .filter(|p| *p != evicted_plant)
+            .collect();
+        plants.push(evicted_plant);
+        let list = plants
+            .iter()
+            .enumerate()
+            .map(|(i, plant)| RecentFile {
+                path: format!("/tmp/{i}.tsx"),
+                plant: *plant,
+                opened_at: "2024-01-01T00:00:00Z".to_string(),
+            })
+            .collect();
+
+        let list = push_recent(list, new_path, iso_timestamp());
+
+        let distinct: std::collections::HashSet<u8> = list.iter().map(|r| r.plant).collect();
+        assert_eq!(list.len(), MAX_RECENT);
+        assert_eq!(distinct.len(), MAX_RECENT, "duplicate plants: {list:?}");
+        assert_eq!(list[0].plant, evicted_plant);
     }
 
     #[test]

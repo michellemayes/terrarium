@@ -308,6 +308,18 @@ describe('renderer', () => {
       );
     });
 
+    it('ignores an open that a newer open superseded', async () => {
+      // formal/tla/Windows.tla: when two opens race in one window, the backend
+      // rejects the older one with "Superseded" instead of rendering it.
+      const { document, emit } = createRendererEnv((command) => {
+        if (command === 'open_file') return Promise.reject('Superseded');
+        return Promise.reject('No file loaded');
+      });
+      emit('tauri://drag-drop', { paths: ['/a.tsx'] });
+      await new Promise(r => setTimeout(r, 10));
+      expect(document.getElementById('error-banner').classList.contains('visible')).toBe(false);
+    });
+
     it('shows transient error without dimming root when dropping only unsupported files', () => {
       const { document, emit } = createRendererEnv();
       const root = document.getElementById('root');
@@ -363,6 +375,16 @@ describe('renderer', () => {
   });
 
   describe('open button', () => {
+    it('ignores a picked file that a newer open superseded', async () => {
+      const { document } = createRendererEnv((command) => {
+        if (command === 'pick_and_open_files') return Promise.reject('Superseded');
+        return Promise.reject('No file loaded');
+      });
+      document.getElementById('open-btn').click();
+      await new Promise(r => setTimeout(r, 10));
+      expect(document.getElementById('error-banner').classList.contains('visible')).toBe(false);
+    });
+
     it('calls pick_and_open_files on button click', () => {
       const { document, window } = createRendererEnv();
       const btn = document.getElementById('open-btn');

@@ -3,11 +3,11 @@ pub mod recent;
 pub mod storage;
 pub mod watcher;
 
-use std::collections::HashMap;
+use std::collections::{HashMap, HashSet};
 use std::path::{Path, PathBuf};
 use std::sync::Mutex;
 use tauri::menu::{MenuBuilder, SubmenuBuilder};
-use tauri::{Emitter, Manager, State};
+use tauri::{AppHandle, Emitter, Manager, Runtime, State};
 
 const SUPPORTED_EXTENSIONS: &[&str] = &["tsx", "jsx"];
 
@@ -27,10 +27,88 @@ pub struct WindowState {
     pub watcher: Option<notify::RecommendedWatcher>,
 }
 
+/// Which file each window shows. Window labels are never reused, so closed
+/// labels are remembered to stop late async work from re-registering them
+/// (formal/tla/Windows.tla).
+#[derive(Default)]
+pub struct Windows {
+    open: HashMap<String, WindowState>,
+    closed: HashSet<String>,
+}
+
+impl Windows {
+    /// Records that `label` now shows `file`, dropping its previous watcher.
+    /// Returns false if the window has been closed.
+    pub fn begin_open(&mut self, label: &str, file: PathBuf) -> bool {
+        if self.closed.contains(label) {
+            return false;
+        }
+        self.open.insert(
+            label.to_string(),
+            WindowState {
+                file,
+                watcher: None,
+            },
+        );
+        true
+    }
+
+    /// The entry for `label` if it still shows `file`: the window has not
+    /// been closed or given another file since `begin_open`.
+    pub fn current(&mut self, label: &str, file: &Path) -> Option<&mut WindowState> {
+        self.open.get_mut(label).filter(|ws| ws.file == file)
+    }
+
+    pub fn close(&mut self, label: &str) {
+        self.open.remove(label);
+        self.closed.insert(label.to_string());
+    }
+
+    pub fn file(&self, label: &str) -> Option<&PathBuf> {
+        self.open.get(label).map(|ws| &ws.file)
+    }
+
+    pub fn label_showing(&self, file: &Path) -> Option<&str> {
+        self.open
+            .iter()
+            .find(|(_, ws)| ws.file == file)
+            .map(|(label, _)| label.as_str())
+    }
+}
+
 pub struct AppState {
-    pub windows: Mutex<HashMap<String, WindowState>>,
+    pub windows: Mutex<Windows>,
     pub next_window_id: Mutex<u32>,
 }
+
+impl Default for AppState {
+    fn default() -> Self {
+        Self {
+            windows: Mutex::new(Windows::default()),
+            next_window_id: Mutex::new(2),
+        }
+    }
+}
+
+impl AppState {
+    /// The file the registry says `label` shows.
+    pub fn file_for(&self, label: &str) -> Option<PathBuf> {
+        self.windows.lock().ok()?.file(label).cloned()
+    }
+
+    /// The window the registry says shows `file`.
+    pub fn label_for(&self, file: &Path) -> Option<String> {
+        self.windows
+            .lock()
+            .ok()?
+            .label_showing(file)
+            .map(str::to_string)
+    }
+}
+
+/// open_file's error when its window was closed, or another file was opened
+/// in it, before this one finished bundling. The frontend ignores it.
+const SUPERSEDED: &str = "Superseded";
 
 pub struct UpdateState {
     pub pending_update: Mutex<Option<tauri_plugin_updater::Update>>,
@@ -43,6 +121,16 @@ async fn open_file(
     state: State<'_, AppState>,
     path: String,
 ) -> Result<String, String> {
+    open_file_in(app, window, &state, path).await
+}
+
+/// Opens `path` in `window` and returns its bundle (the `open_file` command).
+pub async fn open_file_in<R: Runtime>(
+    app: AppHandle<R>,
+    window: tauri::Window<R>,
+    state: &AppState,
+    path: String,
+) -> Result<String, String> {
     let tsx_path = PathBuf::from(&path);
     if !tsx_path.exists() {
         return Err(format!("File not found: {path}"));
@@ -52,31 +140,38 @@ async fn open_file(
     }
 
     let label = window.label().to_string();
-    let filename = tsx_path.file_name().unwrap_or_default().to_string_lossy();
-    let _ = window.set_title(&format!("{filename} — Terrarium"));
-    if let Some(wv) = app.get_webview_window(&label) {
-        set_file_path_on_window(&wv, &path);
+    let stamp = watcher::FileStamp::of(&tsx_path);
+    {
+        // Register the file before awaiting so concurrent opens see it.
+        let mut windows = state
+            .windows
+            .lock()
+            .map_err(|_| "Internal state error".to_string())?;
+        if !windows.begin_open(&label, tsx_path.clone()) {
+            return Err(SUPERSEDED.to_string());
+        }
+        let filename = tsx_path.file_name().unwrap_or_default().to_string_lossy();
+        let _ = window.set_title(&format!("{filename} — Terrarium"));
+        if let Some(wv) = app.get_webview_window(&label) {
+            set_file_path_on_window(&wv, &path);
+        }
     }
 
     let bundle_result = bundler::bundle_tsx(&app, &tsx_path).await;
-
-    if bundle_result.is_ok() {
-        recent::record_recent(&path);
-    }
-
-    let watcher = watcher::watch_file(app.clone(), tsx_path.clone(), label.clone()).ok();
+    let watcher =
+        watcher::watch_file_since(app.clone(), tsx_path.clone(), label.clone(), stamp).ok();
 
     state
         .windows
         .lock()
         .map_err(|_| "Internal state error".to_string())?
-        .insert(
-            label,
-            WindowState {
-                file: tsx_path,
-                watcher,
-            },
-        );
+        .current(&label, &tsx_path)
+        .ok_or_else(|| SUPERSEDED.to_string())?
+        .watcher = watcher;
+
+    if bundle_result.is_ok() {
+        recent::record_recent(&path);
+    }
 
     bundle_result
 }
@@ -113,7 +208,8 @@ async fn pick_and_open_files(
         .windows
         .lock()
         .map_err(|_| "Internal state error".to_string())?
-        .contains_key(&label);
+        .file(&label)
+        .is_some();
 
     let (first_file, remaining) = if has_file {
         (None, paths)
@@ -132,13 +228,7 @@ async fn pick_and_open_files(
         let _ = new_window.set_title(&format!("{filename} — Terrarium"));
 
         if let Ok(mut windows) = state.windows.lock() {
-            windows.insert(
-                new_label.clone(),
-                WindowState {
-                    file: tsx_path.clone(),
-                    watcher: None,
-                },
-            );
+            windows.begin_open(&new_label, tsx_path.clone());
         }
 
         spawn_bundle_and_watch(app.clone(), tsx_path.clone(), new_label);
@@ -147,7 +237,7 @@ async fn pick_and_open_files(
     match first_file {
         Some(path) => {
             let path_str = path.to_string_lossy().to_string();
-            open_file(app, window, state, path_str).await
+            open_file_in(app, window, &state, path_str).await
         }
         // The current window already had a file and the picked files were
         // opened in new windows. Surface this as "no file selected" so the
@@ -167,8 +257,8 @@ async fn request_bundle(
         .windows
         .lock()
         .map_err(|_| "Internal state error".to_string())?
-        .get(&label)
-        .map(|ws| ws.file.clone())
+        .file(&label)
+        .cloned()
         .ok_or_else(|| "No file loaded".to_string())?;
     bundler::bundle_tsx(&app, &path).await
 }
@@ -190,14 +280,17 @@ fn next_label(state: &AppState) -> String {
 
 /// Sets `window.__TERRARIUM_FILE_PATH__` on a webview so the storage shim
 /// knows which file's storage namespace to use.
-fn set_file_path_on_window(window: &tauri::WebviewWindow, path: &str) {
+fn set_file_path_on_window<R: Runtime>(window: &tauri::WebviewWindow<R>, path: &str) {
     let _ = window.eval(format!(
         "window.__TERRARIUM_FILE_PATH__ = {};",
         serde_json::to_string(path).unwrap_or_default()
     ));
 }
 
-fn create_window(app: &tauri::AppHandle, label: &str) -> Result<tauri::WebviewWindow, String> {
+fn create_window<R: Runtime>(
+    app: &AppHandle<R>,
+    label: &str,
+) -> Result<tauri::WebviewWindow<R>, String> {
     tauri::WebviewWindowBuilder::new(app, label, tauri::WebviewUrl::App("index.html".into()))
         .title("Terrarium")
         .inner_size(800.0, 600.0)
@@ -206,29 +299,37 @@ fn create_window(app: &tauri::AppHandle, label: &str) -> Result<tauri::WebviewWi
         .map_err(|e| format!("Failed to create window: {e}"))
 }
 
-fn spawn_bundle_and_watch(app: tauri::AppHandle, path: PathBuf, label: String) {
+fn spawn_bundle_and_watch<R: Runtime>(app: AppHandle<R>, path: PathBuf, label: String) {
     tauri::async_runtime::spawn(async move {
-        match bundler::bundle_tsx(&app, &path).await {
+        let stamp = watcher::FileStamp::of(&path);
+        let result = bundler::bundle_tsx(&app, &path).await;
+        let watcher =
+            watcher::watch_file_since(app.clone(), path.clone(), label.clone(), stamp).ok();
+
+        let state = app.state::<AppState>();
+        let Ok(mut windows) = state.windows.lock() else {
+            return;
+        };
+        // Skip if the window was closed or another file was opened in it.
+        let Some(ws) = windows.current(&label, &path) else {
+            return;
+        };
+        ws.watcher = watcher;
+        match result {
             Ok(bundle) => {
-                recent::record_recent(&path.to_string_lossy());
                 if let Some(w) = app.get_webview_window(&label) {
                     let filename = path.file_name().unwrap_or_default().to_string_lossy();
                     let _ = w.set_title(&format!("{filename} — Terrarium"));
                     set_file_path_on_window(&w, &path.to_string_lossy());
                 }
                 let _ = app.emit_to(&label, "bundle-ready", bundle);
+                drop(windows);
+                recent::record_recent(&path.to_string_lossy());
             }
             Err(err) => {
                 let _ = app.emit_to(&label, "bundle-error", err);
             }
         }
-        let watcher = watcher::watch_file(app.clone(), path.clone(), label.clone()).ok();
-        let state = app.state::<AppState>();
-        if let Ok(mut windows) = state.windows.lock() {
-            if let Some(ws) = windows.get_mut(&label) {
-                ws.watcher = watcher;
-            }
-        };
     });
 }
 
@@ -249,13 +350,7 @@ async fn open_in_new_windows(
         let _ = window.set_title(&format!("{filename} — Terrarium"));
 
         if let Ok(mut windows) = state.windows.lock() {
-            windows.insert(
-                label.clone(),
-                WindowState {
-                    file: tsx_path.clone(),
-                    watcher: None,
-                },
-            );
+            windows.begin_open(&label, tsx_path.clone());
         }
 
         spawn_bundle_and_watch(app.clone(), tsx_path, label);
@@ -296,13 +391,7 @@ fn mark_first_run_complete() -> Result<(), String> {
 
 #[tauri::command]
 fn get_recent_files() -> Vec<recent::RecentFile> {
-    let entries = recent::read_recent();
-    let live: Vec<recent::RecentFile> = entries
-        .into_iter()
-        .filter(|e| std::path::Path::new(&e.path).exists())
-        .collect();
-    recent::write_recent(&live);
-    live
+    recent::prune_recent(|e| std::path::Path::new(&e.path).exists())
 }
 
 #[tauri::command]
@@ -351,16 +440,80 @@ async fn restart_app(app: tauri::AppHandle) -> Result<(), String> {
     app.restart();
 }
 
+pub fn handle_window_destroyed<R: Runtime>(app: &AppHandle<R>, label: &str) {
+    let state = app.state::<AppState>();
+    if let Ok(mut windows) = state.windows.lock() {
+        windows.close(label);
+    };
+}
+
+/// Handles files opened from Finder / the dock / `open -a` (RunEvent::Opened).
+pub fn handle_opened<R: Runtime>(app: &AppHandle<R>, tsx_paths: Vec<PathBuf>) {
+    if tsx_paths.is_empty() {
+        return;
+    }
+
+    let state = app.state::<AppState>();
+    let mut iter = tsx_paths.into_iter().peekable();
+
+    if let Some(tsx_path) = iter.next_if(|p| claim_main(app, &state, p)) {
+        spawn_bundle_and_watch(app.clone(), tsx_path, "main".to_string());
+    }
+
+    for tsx_path in iter {
+        // Skip files already open in any window
+        let already_open = state
+            .windows
+            .lock()
+            .map(|w| w.label_showing(&tsx_path).is_some())
+            .unwrap_or(false);
+        if already_open {
+            continue;
+        }
+
+        let label = next_label(&state);
+        if let Ok(window) = create_window(app, &label) {
+            if let Ok(mut windows) = state.windows.lock() {
+                windows.begin_open(&label, tsx_path.clone());
+            }
+            let filename = tsx_path.file_name().unwrap_or_default().to_string_lossy();
+            let _ = window.set_title(&format!("{filename} — Terrarium"));
+            set_file_path_on_window(&window, &tsx_path.to_string_lossy());
+            spawn_bundle_and_watch(app.clone(), tsx_path, label);
+        }
+    }
+}
+
+/// Claims the "main" window for a file opened from Finder if it has no file
+/// loaded and has not been closed.
+///
+/// On macOS cold start, RunEvent::Opened fires before the window is
+/// registered in the runtime, so we intentionally do NOT check
+/// get_webview_window("main") here. We only check state: if "main"
+/// has no file yet, we reserve it. The frontend's request_bundle
+/// call will find the file in state when the webview loads.
+fn claim_main<R: Runtime>(app: &AppHandle<R>, state: &AppState, tsx_path: &Path) -> bool {
+    let Ok(mut windows) = state.windows.lock() else {
+        return false;
+    };
+    if windows.file("main").is_some() || !windows.begin_open("main", tsx_path.to_path_buf()) {
+        return false;
+    }
+    if let Some(window) = app.get_webview_window("main") {
+        let name = tsx_path.file_name().unwrap_or_default().to_string_lossy();
+        let _ = window.set_title(&format!("{name} — Terrarium"));
+        set_file_path_on_window(&window, &tsx_path.to_string_lossy());
+    }
+    true
+}
+
 pub fn run() {
     tauri::Builder::default()
         .plugin(tauri_plugin_opener::init())
         .plugin(tauri_plugin_dialog::init())
         .plugin(tauri_plugin_updater::Builder::new().build())
         .plugin(tauri_plugin_process::init())
-        .manage(AppState {
-            windows: Mutex::new(HashMap::new()),
-            next_window_id: Mutex::new(2),
-        })
+        .manage(AppState::default())
         .manage(UpdateState { pending_update: Mutex::new(None) })
         .manage({
             let db_path = bundler::cache_dir().join("storage.db");
@@ -512,88 +665,14 @@ pub fn run() {
         })
         .on_window_event(|window, event| {
             if let tauri::WindowEvent::Destroyed = event {
-                let app = window.app_handle();
-                let state = app.state::<AppState>();
-                let label = window.label().to_string();
-                if let Ok(mut windows) = state.windows.lock() {
-                    windows.remove(&label);
-                };
+                handle_window_destroyed(window.app_handle(), window.label());
             }
         })
         .build(tauri::generate_context!())
         .expect("error while building tauri application")
         .run(|app, event| {
             if let tauri::RunEvent::Opened { urls } = event {
-                let tsx_paths = supported_paths_from_urls(&urls);
-                if tsx_paths.is_empty() {
-                    return;
-                }
-
-                let state = app.state::<AppState>();
-                let mut iter = tsx_paths.into_iter();
-
-                // Claim the "main" window for the first file if it has no file loaded.
-                // On macOS cold start, RunEvent::Opened fires before the window is
-                // registered in the runtime, so we intentionally do NOT check
-                // get_webview_window("main") here. We only check state: if "main"
-                // has no file yet, we reserve it. The frontend's request_bundle
-                // call will find the file in state when the webview loads.
-                let main_has_no_file = !state
-                    .windows
-                    .lock()
-                    .map(|w| w.contains_key("main"))
-                    .unwrap_or(true);
-
-                if main_has_no_file {
-                    if let Some(tsx_path) = iter.next() {
-                        // Insert into state immediately so the frontend's
-                        // request_bundle call can find the file on page load.
-                        if let Ok(mut windows) = state.windows.lock() {
-                            windows.insert(
-                                "main".to_string(),
-                                WindowState {
-                                    file: tsx_path.clone(),
-                                    watcher: None,
-                                },
-                            );
-                        }
-                        if let Some(window) = app.get_webview_window("main") {
-                            let name = tsx_path.file_name().unwrap_or_default().to_string_lossy();
-                            let _ = window.set_title(&format!("{name} — Terrarium"));
-                            set_file_path_on_window(&window, &tsx_path.to_string_lossy());
-                        }
-                        spawn_bundle_and_watch(app.clone(), tsx_path, "main".to_string());
-                    }
-                }
-
-                for tsx_path in iter {
-                    // Skip files already open in any window
-                    let already_open = state
-                        .windows
-                        .lock()
-                        .map(|w| w.values().any(|ws| ws.file == tsx_path))
-                        .unwrap_or(false);
-                    if already_open {
-                        continue;
-                    }
-
-                    let label = next_label(&state);
-                    if let Ok(window) = create_window(app, &label) {
-                        if let Ok(mut windows) = state.windows.lock() {
-                            windows.insert(
-                                label.clone(),
-                                WindowState {
-                                    file: tsx_path.clone(),
-                                    watcher: None,
-                                },
-                            );
-                        }
-                        let filename = tsx_path.file_name().unwrap_or_default().to_string_lossy();
-                        let _ = window.set_title(&format!("{filename} — Terrarium"));
-                        set_file_path_on_window(&window, &tsx_path.to_string_lossy());
-                        spawn_bundle_and_watch(app.clone(), tsx_path, label);
-                    }
-                }
+                handle_opened(app, supported_paths_from_urls(&urls));
             }
         });
 }
@@ -604,37 +683,48 @@ mod tests {
 
     #[test]
     fn app_state_initializes_empty() {
-        let state = AppState {
-            windows: Mutex::new(HashMap::new()),
-            next_window_id: Mutex::new(2),
-        };
-        assert!(state.windows.lock().unwrap().is_empty());
+        let state = AppState::default();
+        assert_eq!(state.file_for("main"), None);
     }
 
     #[test]
     fn app_state_stores_window_state() {
-        let state = AppState {
-            windows: Mutex::new(HashMap::new()),
-            next_window_id: Mutex::new(2),
-        };
+        let state = AppState::default();
         let path = PathBuf::from("/tmp/test.tsx");
-        state.windows.lock().unwrap().insert(
-            "main".to_string(),
-            WindowState {
-                file: path.clone(),
-                watcher: None,
-            },
-        );
-        let windows = state.windows.lock().unwrap();
-        assert_eq!(windows.get("main").unwrap().file, path);
+        assert!(state
+            .windows
+            .lock()
+            .unwrap()
+            .begin_open("main", path.clone()));
+        assert_eq!(state.file_for("main"), Some(path.clone()));
+        assert_eq!(state.label_for(&path).as_deref(), Some("main"));
+    }
+
+    #[test]
+    fn closed_window_cannot_be_registered_again() {
+        let mut windows = Windows::default();
+        assert!(windows.begin_open("window-2", PathBuf::from("/tmp/a.tsx")));
+        windows.close("window-2");
+        assert!(!windows.begin_open("window-2", PathBuf::from("/tmp/b.tsx")));
+        assert_eq!(windows.file("window-2"), None);
+    }
+
+    #[test]
+    fn current_only_matches_the_latest_file() {
+        let mut windows = Windows::default();
+        let a = PathBuf::from("/tmp/a.tsx");
+        let b = PathBuf::from("/tmp/b.tsx");
+        windows.begin_open("main", a.clone());
+        windows.begin_open("main", b.clone());
+        assert!(windows.current("main", &a).is_none());
+        assert!(windows.current("main", &b).is_some());
+        windows.close("main");
+        assert!(windows.current("main", &b).is_none());
     }
 
     #[test]
     fn next_window_id_increments() {
-        let state = AppState {
-            windows: Mutex::new(HashMap::new()),
-            next_window_id: Mutex::new(2),
-        };
+        let state = AppState::default();
         let mut id = state.next_window_id.lock().unwrap();
         assert_eq!(*id, 2);
         *id += 1;
@@ -643,10 +733,7 @@ mod tests {
 
     #[test]
     fn next_label_generates_sequential_labels() {
-        let state = AppState {
-            windows: Mutex::new(HashMap::new()),
-            next_window_id: Mutex::new(2),
-        };
+        let state = AppState::default();
         assert_eq!(next_label(&state), "window-2");
         assert_eq!(next_label(&state), "window-3");
         assert_eq!(next_label(&state), "window-4");
